@@ -1,4 +1,5 @@
 <?php
+namespace MifuminLib\Mifuminator;
 
 class Mifuminator {
     private $db_file_path;
