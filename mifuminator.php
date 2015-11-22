@@ -22,4 +22,54 @@ class Mifuminator {
     {
         return $this->db;
     }
+
+    public function install()
+    {
+        $this->installAnswerTable();
+        $this->installQuestionTable();
+        $this->installScoreTable();
+    }
+
+    public function installAnswerTable()
+    {
+        $this->db->exec('
+            CREATE TABLE answer(
+                answer_id INT NOT NULL PRIMARY KEY,
+                sentence TEXT NOT NULL,
+                equal_to INT NULL,
+                deleted BOOLEAN NOT NULL
+            );
+        ');
+    }
+
+    public function installQuestionTable()
+    {
+        $this->db->exec('
+            CREATE TABLE question(
+                question_id INT NOT NULL PRIMARY KEY,
+                sentence TEXT NOT NULL,
+                equal_to INT NULL,
+                deleted BOOLEAN NOT NULL
+            );
+        ');
+    }
+
+    public function installScoreTable()
+    {
+        $this->db->exec('
+            CREATE TABLE score(
+                question_id INT NOT NULL,
+                answer_id INT NOT NULL,
+                score INT NOT NULL
+            );
+        ');
+        $this->db->exec('
+            CREATE UNIQUE INDEX score_question_answer
+                ON score (question_id, answer_id);
+        ');
+        $this->db->exec('
+            CREATE UNIQUE INDEX score_answer_question
+                ON score (answer_id, question_id);
+        ');
+    }
 }
