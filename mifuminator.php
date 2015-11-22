@@ -34,13 +34,13 @@ class Mifuminator {
     }
 
     // 挿入
-    public function insertToTable($table, $params)
+    public function insertToTable($table, $params, $tryReplace = FALSE)
     {
         $inparams = [];
         foreach ($params as $key => $value) {
             $inparams[':'.$key] = $value;
         }
-        $sql = 'INSERT INTO '.$table.' ('.implode(',', array_keys($params)).') VALUES ('.implode(',', array_keys($inparams)).')';
+        $sql = 'INSERT '.($tryReplace?'OR REPLACE ':'').'INTO '.$table.' ('.implode(',', array_keys($params)).') VALUES ('.implode(',', array_keys($inparams)).')';
         $statement = $this->db->prepare($sql);
         if ($statement===FALSE) {
             return FALSE;
@@ -106,5 +106,10 @@ class Mifuminator {
             CREATE UNIQUE INDEX score_answer_question
                 ON score (answer_id, question_id);
         ');
+    }
+
+    public function setScore($question_id, $answer_id, $score)
+    {
+        $this->insertToTable('score', ['question_id' => $question_id, 'answer_id' => $answer_id, 'score' => $score], TRUE);
     }
 }
