@@ -34,14 +34,14 @@ class Mifuminator {
     {
         $this->db->exec('
             CREATE TABLE answer(
-                answer_id INT NOT NULL PRIMARY KEY,
-                sentence TEXT NOT NULL,
-                equal_to INT NULL,
+                answer_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                content TEXT NOT NULL,
+                equal_to INTEGER NULL,
                 create_user_id TEXT NULL,
                 create_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 update_user_id TEXT NULL,
                 update_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                deleted BOOLEAN NOT NULL
+                deleted BOOLEAN NOT NULL DEFAULT 0
             );
         ');
     }
@@ -50,14 +50,14 @@ class Mifuminator {
     {
         $this->db->exec('
             CREATE TABLE question(
-                question_id INT NOT NULL PRIMARY KEY,
-                sentence TEXT NOT NULL,
-                equal_to INT NULL,
+                question_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                content TEXT NOT NULL,
+                equal_to INTEGER NULL,
                 create_user_id TEXT NULL,
                 create_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 update_user_id TEXT NULL,
                 update_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                deleted BOOLEAN NOT NULL
+                deleted BOOLEAN NOT NULL DEFAULT 0
             );
         ');
     }
@@ -66,9 +66,9 @@ class Mifuminator {
     {
         $this->db->exec('
             CREATE TABLE score(
-                question_id INT NOT NULL,
-                answer_id INT NOT NULL,
-                score INT NOT NULL
+                question_id INTEGER NOT NULL,
+                answer_id INTEGER NOT NULL,
+                score INTEGER NOT NULL
             );
         ');
         $this->db->exec('
