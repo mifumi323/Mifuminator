@@ -23,6 +23,11 @@ class Mifuminator {
         $this->insertToTable('answer', ['content' => $answer, 'create_user_id' => $user_id, 'update_user_id' => $user_id]);
     }
 
+    public function addQuestion($question, $user_id = NULL)
+    {
+        $this->insertToTable('question', ['content' => $question, 'create_user_id' => $user_id, 'update_user_id' => $user_id]);
+    }
+
     public function getDB()
     {
         return $this->db;
