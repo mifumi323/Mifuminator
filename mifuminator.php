@@ -18,9 +18,31 @@ class Mifuminator {
         $this->db->sqliteCreateFunction('RANDOM', 'mt_rand', 0);
     }
 
+    public function addAnswer($answer, $user_id = NULL)
+    {
+        $this->insertToTable('answer', ['content' => $answer, 'create_user_id' => $user_id, 'update_user_id' => $user_id]);
+    }
+
     public function getDB()
     {
         return $this->db;
+    }
+
+    // 挿入
+    public function insertToTable($table, $params)
+    {
+        $inparams = [];
+        foreach ($params as $key => $value) {
+            $inparams[':'.$key] = $value;
+        }
+        $sql = 'INSERT INTO '.$table.' ('.implode(',', array_keys($params)).') VALUES ('.implode(',', array_keys($inparams)).')';
+        $statement = $this->db->prepare($sql);
+        if ($statement===FALSE) {
+            return FALSE;
+        }else {
+            $statement->execute($inparams);
+            return TRUE;
+        }
     }
 
     public function install()
