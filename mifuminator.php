@@ -37,6 +37,10 @@ class Mifuminator {
                 answer_id INT NOT NULL PRIMARY KEY,
                 sentence TEXT NOT NULL,
                 equal_to INT NULL,
+                create_user_id TEXT NULL,
+                create_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                update_user_id TEXT NULL,
+                update_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 deleted BOOLEAN NOT NULL
             );
         ');
@@ -49,6 +53,10 @@ class Mifuminator {
                 question_id INT NOT NULL PRIMARY KEY,
                 sentence TEXT NOT NULL,
                 equal_to INT NULL,
+                create_user_id TEXT NULL,
+                create_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                update_user_id TEXT NULL,
+                update_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 deleted BOOLEAN NOT NULL
             );
         ');
