@@ -62,7 +62,7 @@ class Mifuminator {
         $this->db->exec('
             CREATE TABLE answer(
                 answer_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                content TEXT NOT NULL,
+                content TEXT NOT NULL UNIQUE,
                 equal_to INTEGER NULL,
                 create_user_id TEXT NULL,
                 create_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -78,7 +78,7 @@ class Mifuminator {
         $this->db->exec('
             CREATE TABLE question(
                 question_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                content TEXT NOT NULL,
+                content TEXT NOT NULL UNIQUE,
                 equal_to INTEGER NULL,
                 create_user_id TEXT NULL,
                 create_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
