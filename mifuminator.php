@@ -18,9 +18,9 @@ class Mifuminator {
         $this->db->sqliteCreateFunction('RANDOM', 'mt_rand', 0);
     }
 
-    public function addAnswer($answer, $user_id = NULL)
+    public function addTarget($target, $user_id = NULL)
     {
-        $this->insertToTable('answer', ['content' => $answer, 'create_user_id' => $user_id, 'update_user_id' => $user_id]);
+        $this->insertToTable('target', ['content' => $target, 'create_user_id' => $user_id, 'update_user_id' => $user_id]);
     }
 
     public function addQuestion($question, $user_id = NULL)
@@ -52,16 +52,16 @@ class Mifuminator {
 
     public function install()
     {
-        $this->installAnswerTable();
+        $this->installTargetTable();
         $this->installQuestionTable();
         $this->installScoreTable();
     }
 
-    public function installAnswerTable()
+    public function installTargetTable()
     {
         $this->db->exec('
-            CREATE TABLE answer(
-                answer_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            CREATE TABLE target(
+                target_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 content TEXT NOT NULL UNIQUE,
                 equal_to INTEGER NULL,
                 create_user_id TEXT NULL,
@@ -94,22 +94,22 @@ class Mifuminator {
         $this->db->exec('
             CREATE TABLE score(
                 question_id INTEGER NOT NULL,
-                answer_id INTEGER NOT NULL,
+                target_id INTEGER NOT NULL,
                 score INTEGER NOT NULL
             );
         ');
         $this->db->exec('
-            CREATE UNIQUE INDEX score_question_answer
-                ON score (question_id, answer_id);
+            CREATE UNIQUE INDEX score_question_target
+                ON score (question_id, target_id);
         ');
         $this->db->exec('
-            CREATE UNIQUE INDEX score_answer_question
-                ON score (answer_id, question_id);
+            CREATE UNIQUE INDEX score_target_question
+                ON score (target_id, question_id);
         ');
     }
 
-    public function setScore($question_id, $answer_id, $score)
+    public function setScore($question_id, $target_id, $score)
     {
-        $this->insertToTable('score', ['question_id' => $question_id, 'answer_id' => $answer_id, 'score' => $score], TRUE);
+        $this->insertToTable('score', ['question_id' => $question_id, 'target_id' => $target_id, 'score' => $score], TRUE);
     }
 }
