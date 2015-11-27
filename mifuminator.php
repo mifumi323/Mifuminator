@@ -8,6 +8,12 @@ class Mifuminator {
 
     private $db;
 
+    const ANSWER_YES = 1;
+    const ANSWER_NO = 2;
+    const ANSWER_DONT_KNOW = 3;
+    const ANSWER_PROBABLY = 4;
+    const ANSWER_PROBABLY_NOT = 5;
+
     public function __construct($db_file_path, $tmp_dir, $log_dir)
     {
         $this->db_file_path = $db_file_path;
