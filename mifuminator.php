@@ -108,6 +108,14 @@ class Mifuminator {
         ');
     }
 
+    public function nextQuestion($user_id, $game_id, $stage_id)
+    {
+        $ret = $this->db->query('SELECT * FROM question WHERE deleted = 0 AND equal_to IS NULL ORDER BY RANDOM() LIMIT 1;');
+        $row = $ret->fetch();
+        $row['stage_id'] = mt_rand();
+        return $row;
+    }
+
     public function setScore($question_id, $target_id, $score)
     {
         $this->insertToTable('score', ['question_id' => $question_id, 'target_id' => $target_id, 'score' => $score], TRUE);
