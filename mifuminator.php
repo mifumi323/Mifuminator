@@ -14,6 +14,23 @@ class Mifuminator {
     const ANSWER_PROBABLY = 4;
     const ANSWER_PROBABLY_NOT = 5;
 
+    // オプション的なパブリックフィールド
+
+    // 回答内容ごとのスコア
+    public $score = [
+        self::ANSWER_YES          => 10,
+        self::ANSWER_NO           => -10,
+        self::ANSWER_DONT_KNOW    => 0,
+        self::ANSWER_PROBABLY     => 1,
+        self::ANSWER_PROBABLY_NOT => -1,
+    ];
+
+    // 何人分ぐらいの回答が集まったら信用できるとみなすか
+    public $required_population = 100;
+
+    // スコアの最大値
+    public $score_max = 100;
+
     public function __construct($db_file_path, $tmp_dir, $log_dir)
     {
         $this->db_file_path = $db_file_path;
@@ -34,9 +51,57 @@ class Mifuminator {
         $this->insertToTable('question', ['content' => $question, 'create_user_id' => $user_id, 'update_user_id' => $user_id]);
     }
 
+    public function analyze()
+    {
+        $count = array();
+        $total_score = array();
+        foreach (glob($this->log_dir.'*.log') as $file) {
+            if (basename($file)==$this->getLogFileName()) continue;
+            $this->analyzeFile($file, $count, $total_score);
+        }
+
+        $score_power = $this->score_max / $this->score[self::ANSWER_YES];
+        $this->db->beginTransaction();
+        $this->db->exec('DELETE FROM score;');
+        foreach ($count as $target_id => $count_row) {
+            foreach ($count_row as $question_id => $count_value) {
+                $average_score = $total_score[$target_id][$question_id] / $count_value;
+                $population_power = min(1, $count_value / $this->required_population);
+                $final_score = (int)($average_score * $population_power * $score_power);
+                if ($final_score==0) continue;
+                $this->setScore($question_id, $target_id, $final_score);
+            }
+        }
+        $this->db->commit();
+    }
+
+    public function analyzeFile($file, &$count, &$total_score)
+    {
+        $handle = fopen($file, 'r');
+        while (($array = fgetcsv($handle)) !== FALSE) {
+            if (count($array)<5) break;
+            $timestamp = $array[0];
+            $user_id = $array[1];
+            $game_id = $array[2];
+            $target_id = $array[3];
+            for ($i=4; $i<count($array); $i++) {
+                list($question_id, $answer) = explode('=', $array[$i]);
+                $count[$target_id][$question_id]++;
+                $total_score[$target_id][$question_id] += $this->score[trim($answer)];
+            }
+        }
+        fclose($handle);
+    }
+
     public function getDB()
     {
         return $this->db;
+    }
+
+    public function getLogFileName($time=NULL)
+    {
+        if ($time===NULL) $time = time();
+        return $this->log_dir.date('Ymd', $time).'.log';
     }
 
     // 挿入
@@ -125,5 +190,15 @@ class Mifuminator {
     public function setScore($question_id, $target_id, $score)
     {
         $this->insertToTable('score', ['question_id' => $question_id, 'target_id' => $target_id, 'score' => $score], TRUE);
+    }
+
+    public function writeLog($user_id, $game_id, $target_id, $question_answer_list, $time=NULL)
+    {
+        if ($time===NULL) $time = time();
+        $line = date('c', time()).','.$user_id.','.$game_id.','.$target_id;
+        foreach ($question_answer_list as $question_id => $answer) {
+            $line .= ','.$question_id.'='.$answer;
+        }
+        file_put_contents($this->getLogFileName($time), $line."\n", FILE_APPEND);
     }
 }
