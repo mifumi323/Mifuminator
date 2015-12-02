@@ -73,6 +73,7 @@ class Mifuminator {
             }
         }
         $this->db->commit();
+        return TRUE;
     }
 
     public function analyzeFile($file, &$count, &$total_score)
