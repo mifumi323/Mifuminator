@@ -105,6 +105,48 @@ class Mifuminator {
         return $this->log_dir.date('Ymd', $time).'.log';
     }
 
+    public function guessTarget($qustion_answer_history, $limit = 1)
+    {
+        $whenthen = '';
+        $qcsv = '';
+        foreach ($qustion_answer_history as $question_id => $answer) {
+            $qscore = $this->score[$answer];
+            if ($qscore==0) continue;
+            $whenthen .= "\nWHEN $question_id THEN $qscore";
+            if (strlen($qcsv)>0) $qcsv .= ',';
+            $qcsv .= $question_id;
+        }
+        if (strlen($qcsv)==0) {
+            return [];
+        }
+        $ret = $this->getDB()->query('
+            SELECT
+                *
+            FROM (
+                SELECT
+                    target_id,
+                    content,
+                    (
+                        SELECT
+                            SUM(score * CASE question_id
+                            '.$whenthen.'
+                            END
+                            )
+                        FROM score
+                        WHERE score.target_id = target.target_id
+                        AND score.question_id IN ('.$qcsv.')
+                    ) score
+                FROM target
+                WHERE deleted = 0
+                AND equal_to IS NULL
+                ORDER BY score DESC, RANDOM()
+                LIMIT '.$limit.'
+            )
+            WHERE score > 0;
+        ');
+        return $ret->fetchAll();
+    }
+
     // 挿入
     public function insertToTable($table, $params, $tryReplace = FALSE)
     {
