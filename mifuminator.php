@@ -28,8 +28,11 @@ class Mifuminator {
     // 何人分ぐらいの回答が集まったら信用できるとみなすか
     public $required_population = 100;
 
-    // スコアの最大値
+    // 統計スコアの最大値
     public $score_max = 100;
+
+    // 候補のうちトップからこれだけ引き離されていると候補から除外
+    public $cutoff_difference = 2000;
 
     // 未知の質問を投げかける確率(%)
     public $try_unknown_question_rate = 5;
@@ -172,7 +175,7 @@ class Mifuminator {
         return $this->log_dir.date('Ymd', $time).'.log';
     }
 
-    public function guessTarget($qustion_answer_history, $limit = 1)
+    public function guessTarget($qustion_answer_history, $max = 1, $min = 1)
     {
         $whenthen = '';
         $qcsv = '';
@@ -188,30 +191,37 @@ class Mifuminator {
         }
         $ret = $this->getDB()->query('
             SELECT
-                *
-            FROM (
-                SELECT
-                    target_id,
-                    content,
-                    (
-                        SELECT
-                            SUM(score * CASE question_id
-                            '.$whenthen.'
-                            END
-                            )
-                        FROM score
-                        WHERE score.target_id = target.target_id
-                        AND score.question_id IN ('.$qcsv.')
-                    ) score
-                FROM target
-                WHERE deleted = 0
-                AND equal_to IS NULL
-                ORDER BY score DESC, RANDOM()
-                LIMIT '.$limit.'
-            )
-            WHERE score > 0;
+                target_id,
+                content,
+                COALESCE((
+                    SELECT
+                        SUM(score * CASE question_id
+                        '.$whenthen.'
+                        END
+                        )
+                    FROM score
+                    WHERE score.target_id = target.target_id
+                    AND score.question_id IN ('.$qcsv.')
+                ), 0) score
+            FROM target
+            WHERE deleted = 0
+            AND equal_to IS NULL
+            ORDER BY score DESC, RANDOM()
+            LIMIT '.$max.'
         ');
-        return $ret->fetchAll();
+        $result = [];
+        $i = 0;
+        $highscore = 0;
+        foreach ($ret as $row) {
+            if ($i >= $min) {
+                if ($row['score'] <= 0) break;
+                if ($row['score'] <= $highscore - $this->cutoff_difference) break;
+            }
+            $result[] = $row;
+            if ($i==0) $highscore = $row['score'];
+            $i++;
+        }
+        return $result;
     }
 
     // 挿入
