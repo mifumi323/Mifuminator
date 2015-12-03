@@ -31,6 +31,9 @@ class Mifuminator {
     // スコアの最大値
     public $score_max = 100;
 
+    // 未知の質問を投げかける確率(%)
+    public $try_unknown_question_rate = 5;
+
     public function __construct($db_file_path, $tmp_dir, $log_dir)
     {
         $this->db_file_path = $db_file_path;
@@ -97,6 +100,67 @@ class Mifuminator {
     public function getDB()
     {
         return $this->db;
+    }
+
+    public function getQuestionScoreSql($qustion_answer_history, $temp_targets)
+    {
+        if (mt_rand(0, 99)<$this->try_unknown_question_rate) return $this->getQuestionScoreSqlUnknown($qustion_answer_history, $temp_targets);
+        return $this->getQuestionScoreSqlDivideHalf($qustion_answer_history, $temp_targets);
+    }
+
+    public function getQuestionScoreSqlDivideHalf($qustion_answer_history, $temp_targets)
+    {
+        if (count($temp_targets)>1) {
+            $score_sql = '
+                (
+                    SELECT
+                        SUM(CASE WHEN score > 0 OR score < 0 THEN 1 ELSE 0 END)
+                        -
+                        ABS(
+                            SUM(CASE WHEN score > 0 THEN 1 ELSE 0 END)
+                            -
+                            SUM(CASE WHEN score < 0 THEN 1 ELSE 0 END)
+                        )
+                    FROM score
+                    WHERE score.question_id = question.question_id
+                    AND target_id IN ('.implode(',', $temp_targets).')
+                )
+            ';
+        }else {
+            $score_sql = '
+                (
+                    SELECT
+                        SUM(CASE WHEN score > 0 OR score < 0 THEN 1 END)
+                        -
+                        ABS(
+                            SUM(CASE WHEN score > 0 THEN 1 END)
+                            -
+                            SUM(CASE WHEN score < 0 THEN 1 END)
+                        )
+                    FROM score
+                    WHERE score.question_id = question.question_id
+                )
+            ';
+        }
+        return $score_sql;
+    }
+
+    // 質問に全く優劣をつけない
+    // (デバッグ用に使うことがあるかもしれない程度)
+    public function getQuestionScoreSqlFlat($qustion_answer_history, $temp_targets)
+    {
+        return '0';
+    }
+
+    public function getQuestionScoreSqlUnknown($qustion_answer_history, $temp_targets)
+    {
+        return '
+            (
+                SELECT -COUNT(*)
+                FROM score
+                WHERE score.question_id = question.question_id
+            )
+        ';
     }
 
     public function getLogFileName($time=NULL)
@@ -222,9 +286,23 @@ class Mifuminator {
         ');
     }
 
-    public function nextQuestion($user_id, $game_id, $stage_id)
+    public function nextQuestion($qustion_answer_history = [], $temp_targets = [])
     {
-        $ret = $this->db->query('SELECT * FROM question WHERE deleted = 0 AND equal_to IS NULL ORDER BY RANDOM() LIMIT 1;');
+        $except_sql = '';
+        if (count($qustion_answer_history)>0) {
+            $except_sql = 'AND question_id NOT IN ('.implode(',',array_keys($qustion_answer_history)).')';
+        }
+        $score_sql = $this->getQuestionScoreSql($qustion_answer_history, $temp_targets);
+        $ret = $this->db->query('
+            SELECT *
+                , '.$score_sql.' score
+            FROM question
+            WHERE deleted = 0
+            AND equal_to IS NULL
+            '.$except_sql.'
+            ORDER BY score DESC, RANDOM()
+            LIMIT 1;
+        ');
         $row = $ret->fetch();
         $row['stage_id'] = mt_rand();
         return $row;
