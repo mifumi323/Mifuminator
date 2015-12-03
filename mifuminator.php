@@ -34,6 +34,9 @@ class Mifuminator {
     // 未知の質問を投げかける確率(%)
     public $try_unknown_question_rate = 5;
 
+    // ロジスティック回帰の計数
+    public $logistic_regression_param = 0.054;
+
     public function __construct($db_file_path, $tmp_dir, $log_dir)
     {
         $this->db_file_path = $db_file_path;
@@ -69,7 +72,7 @@ class Mifuminator {
         foreach ($count as $target_id => $count_row) {
             foreach ($count_row as $question_id => $count_value) {
                 $average_score = $total_score[$target_id][$question_id] / $count_value;
-                $population_power = min(1, $count_value / $this->required_population);
+                $population_power = 1/(1+exp(-0.054*($count_value-1)));
                 $final_score = (int)($average_score * $population_power * $score_power);
                 if ($final_score==0) continue;
                 $this->setScore($question_id, $target_id, $final_score);
