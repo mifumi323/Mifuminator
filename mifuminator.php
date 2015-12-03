@@ -77,7 +77,6 @@ class Mifuminator {
                 $average_score = $total_score[$target_id][$question_id] / $count_value;
                 $population_power = 1/(1+exp(-0.054*($count_value-1)));
                 $final_score = (int)($average_score * $population_power * $score_power);
-                if ($final_score==0) continue;
                 $this->setScore($question_id, $target_id, $final_score);
             }
         }
@@ -225,13 +224,13 @@ class Mifuminator {
     }
 
     // 挿入
-    public function insertToTable($table, $params, $tryReplace = FALSE)
+    public function insertToTable($table, $params, $tryReplace = FALSE, $throwOnConflict = TRUE)
     {
         $inparams = [];
         foreach ($params as $key => $value) {
             $inparams[':'.$key] = $value;
         }
-        $sql = 'INSERT '.($tryReplace?'OR REPLACE ':'').'INTO '.$table.' ('.implode(',', array_keys($params)).') VALUES ('.implode(',', array_keys($inparams)).')';
+        $sql = 'INSERT'.($tryReplace?' OR REPLACE':($throwOnConflict?'':' OR IGNORE')).' INTO '.$table.' ('.implode(',', array_keys($params)).') VALUES ('.implode(',', array_keys($inparams)).')';
         $statement = $this->db->prepare($sql);
         if ($statement===FALSE) {
             return FALSE;
@@ -321,18 +320,21 @@ class Mifuminator {
         return $row;
     }
 
-    public function setScore($question_id, $target_id, $score)
+    public function setScore($question_id, $target_id, $score, $replace=TRUE)
     {
-        $this->insertToTable('score', ['question_id' => $question_id, 'target_id' => $target_id, 'score' => $score], TRUE);
+        $this->insertToTable('score', ['question_id' => $question_id, 'target_id' => $target_id, 'score' => $score], $replace, FALSE);
     }
 
-    public function writeLog($user_id, $game_id, $target_id, $question_answer_list, $time=NULL)
+    public function writeLog($user_id, $game_id, $target_id, $question_answer_list, $time=NULL, $insertToDB=FALSE)
     {
         if ($time===NULL) $time = time();
         $line = date('c', time()).','.$user_id.','.$game_id.','.$target_id;
+        if ($insertToDB) $this->db->beginTransaction();
         foreach ($question_answer_list as $question_id => $answer) {
             $line .= ','.$question_id.'='.$answer;
+            if ($insertToDB) $this->setScore($question_id, $target_id, (int)(0.5 * $this->score[$answer] * $this->score_max / $this->score[self::ANSWER_YES]), FALSE);
         }
+        if ($insertToDB) $this->db->commit();
         file_put_contents($this->getLogFileName($time), $line."\n", FILE_APPEND);
     }
 }
