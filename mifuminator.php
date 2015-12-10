@@ -245,6 +245,7 @@ class Mifuminator {
         $this->installTargetTable();
         $this->installQuestionTable();
         $this->installScoreTable();
+        $this->installGameStateTable();
     }
 
     public function installTargetTable()
@@ -295,6 +296,31 @@ class Mifuminator {
         $this->db->exec('
             CREATE UNIQUE INDEX score_target_question
                 ON score (target_id, question_id);
+        ');
+    }
+
+    public function installGameStateTable()
+    {
+        $this->db->exec('
+            CREATE TABLE game_state(
+                user_id TEXT NOT NULL,
+                game_id TEXT NOT NULL,
+                stage_id TEXT NOT NULL,
+                create_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                data TEXT
+            );
+        ');
+        $this->db->exec('
+            CREATE UNIQUE INDEX game_state_user_stage
+                ON game_state (user_id, stage_id);
+        ');
+        $this->db->exec('
+            CREATE INDEX game_state_user_game
+                ON game_state (user_id, game_id);
+        ');
+        $this->db->exec('
+            CREATE INDEX game_state_create_date
+                ON game_state (create_date);
         ');
     }
 
