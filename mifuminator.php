@@ -25,9 +25,6 @@ class Mifuminator {
         self::ANSWER_PROBABLY_NOT => -1,
     ];
 
-    // 何人分ぐらいの回答が集まったら信用できるとみなすか
-    public $required_population = 100;
-
     // 統計スコアの最大値
     public $score_max = 100;
 
@@ -71,15 +68,16 @@ class Mifuminator {
 
         $score_power = $this->score_max / $this->score[self::ANSWER_YES];
         $this->db->beginTransaction();
-        $this->db->exec('DELETE FROM score;');
         foreach ($count as $target_id => $count_row) {
             foreach ($count_row as $question_id => $count_value) {
                 $average_score = $total_score[$target_id][$question_id] / $count_value;
-                $population_power = 1/(1+exp(-0.054*($count_value-1)));
+                $population_power = 1/(1+exp(-$this->logistic_regression_param*($count_value-1)));
                 $final_score = (int)($average_score * $population_power * $score_power);
                 $this->setScore($question_id, $target_id, $final_score);
             }
         }
+        $this->db->exec('DELETE FROM game_state WHERE create_date < DATETIME(\'now\', \'-1 day\');');
+        $this->db->exec('VACUUM;');
         $this->db->commit();
         return TRUE;
     }
