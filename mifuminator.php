@@ -77,8 +77,8 @@ class Mifuminator {
             }
         }
         $this->db->exec('DELETE FROM game_state WHERE create_date < DATETIME(\'now\', \'-1 day\');');
-        $this->db->exec('VACUUM;');
         $this->db->commit();
+        $this->db->exec('VACUUM;');
         return TRUE;
     }
 
