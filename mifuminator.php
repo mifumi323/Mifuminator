@@ -148,6 +148,49 @@ class Mifuminator {
         return $score_sql;
     }
 
+    public function getQuestionScoreSqlDivideTop2($qustion_answer_history, $temp_targets)
+    {
+        if (count($temp_targets)>1) {
+            $score_sql = '
+                ABS((
+                    SELECT
+                        CASE WHEN a IS NOT NULL THEN
+                            CASE WHEN b IS NOT NULL THEN
+                                ABS(a-b)*10
+                            ELSE
+                                ABS(a)
+                            END
+                        ELSE
+                            CASE WHEN b IS NOT NULL THEN
+                                ABS(b)
+                            ELSE
+                                0
+                            END
+                        END
+                        score
+                    FROM (
+                        SELECT
+                            (
+                                SELECT score
+                                FROM score
+                                WHERE score.question_id = question.question_id
+                                AND score.target_id = '.$temp_targets[0].'
+                            ) a,
+                            (
+                                SELECT score
+                                FROM score
+                                WHERE score.question_id = question.question_id
+                                AND score.target_id = '.$temp_targets[1].'
+                            ) b
+                    ) pp
+                ))
+            ';
+        }else {
+            $score_sql = '0';
+        }
+        return $score_sql;
+    }
+
     // 質問に全く優劣をつけない
     // (デバッグ用に使うことがあるかもしれない程度)
     public function getQuestionScoreSqlFlat($qustion_answer_history, $temp_targets)
