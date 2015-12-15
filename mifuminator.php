@@ -200,9 +200,14 @@ class Mifuminator {
 
     public function getQuestionScoreSqlUnknown($qustion_answer_history, $temp_targets)
     {
+        if (count($temp_targets)>0) {
+            $target_count = 'COALESCE(SUM(CASE WHEN target_id IN ('.implode(',', $temp_targets).') THEN -(SELECT COUNT(question_id) FROM question) ELSE 0 END), 0)';
+        }else {
+            $target_count = '';
+        }
         return '
             (
-                SELECT -COUNT(*)
+                SELECT '.$target_count.'-(CASE WHEN SUM(CASE WHEN score>0 THEN 1 ELSE 0 END)>0 AND SUM(CASE WHEN score<0 THEN 1 ELSE 0 END)>0 THEN COUNT(*) ELSE 0 END)
                 FROM score
                 WHERE score.question_id = question.question_id
             )
