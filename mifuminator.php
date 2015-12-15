@@ -14,6 +14,12 @@ class Mifuminator {
     const ANSWER_PROBABLY = 4;
     const ANSWER_PROBABLY_NOT = 5;
 
+    const STATE_ASK = 1;
+    const STATE_SUGGEST = 2;
+    const STATE_CORRECT = 3;
+    const STATE_WRONG = 4;
+    const STATE_YOUWIN = 5;
+
     // オプション的なパブリックフィールド
 
     // 回答内容ごとのスコア
@@ -36,6 +42,12 @@ class Mifuminator {
 
     // ロジスティック回帰の計数
     public $logistic_regression_param = 0.054;
+
+    // 何回目で答えを言うか
+    public $suggest_timings = [20, 40, 50];
+
+    // 最後の1問を学習優先で選ぶ機能を使うか
+    public $use_final_learning = TRUE;
 
     public function __construct($db_file_path, $tmp_dir, $log_dir)
     {
@@ -100,15 +112,92 @@ class Mifuminator {
         fclose($handle);
     }
 
+    public function answer($game_state, $answer)
+    {
+        $game_state['qustion_answer_history'][$game_state['question']['question_id']] = $answer;
+        $game_state['targets'] = $this->guessTarget($game_state['qustion_answer_history'], 100, 10);
+        $game_state['best_target_ids'] = $this->getBestTargetIDs($game_state['targets'], 0);
+
+        if (count($game_state['best_target_ids'])==1 || in_array($game_state['stage_number'], $this->suggest_timings)) {
+            if (!$this->use_final_learning || $game_state['asked_unknown_question'] || $game_state['stage_number']>=$this->suggest_timings[0]) {
+                $game_state['question'] = NULL;
+                $game_state['state'] = self::STATE_SUGGEST;
+            }else {
+                $game_state['asked_unknown_question'] = TRUE;
+                $game_state['question'] = $this->nextQuestion($game_state['qustion_answer_history'], $game_state['best_target_ids'], 'getQuestionScoreSqlUnknown');
+                $game_state['stage_number']++;
+                $game_state['state'] = self::STATE_ASK;
+            }
+        }else {
+            $game_state['question'] = $this->nextQuestion($game_state['qustion_answer_history'], $game_state['best_target_ids']);
+            if ($game_state['question']['function']=='getQuestionScoreSqlUnknown') {
+                $game_state['asked_unknown_question'] = TRUE;
+            }
+            $game_state['stage_number']++;
+            $game_state['state'] = self::STATE_ASK;
+        }
+
+        return $this->nextGameState($game_state);
+    }
+
+    public function checkAnswer($game_state, $correct)
+    {
+        if ($correct) {
+            $game_state['final_target'] = $game_state['targets'][0];
+            $this->writeLog($game_state['user_id'], $game_state['game_id'], $game_state['final_target']['target_id'], $game_state['qustion_answer_history'], NULL, TRUE);
+            $game_state['state'] = self::STATE_CORRECT;
+        }else {
+            $game_state['except_target_ids'] = $game_state['targets']['target_id'];
+            $game_state['state'] = self::STATE_WRONG;
+        }
+        $this->deleteGameState($game_state['game_id']);
+
+        return $this->nextGameState($game_state);
+    }
+
+    public function deleteGameState($game_id)
+    {
+        $statement = $this->db->prepare('DELETE FROM game_state WHERE game_id = :game_id;');
+        return $statement->execute(['game_id' => $game_id]);
+    }
+
     public function getDB()
     {
         return $this->db;
     }
 
-    public function getQuestionScoreSql($qustion_answer_history, $temp_targets)
+    public function generateGameID($user_id)
     {
-        if (mt_rand(0, 99)<$this->try_unknown_question_rate) return $this->getQuestionScoreSqlUnknown($qustion_answer_history, $temp_targets);
-        return $this->getQuestionScoreSqlDivideHalf($qustion_answer_history, $temp_targets);
+        return md5($user_id.microtime());
+    }
+
+    public function generateStageID($user_id, $game_id)
+    {
+        return md5($user_id.$game_id.microtime());
+    }
+
+    public function getBestTargetIDs($targets, $min = 1)
+    {
+        $highscore = 0;
+        $result = [];
+        foreach ($targets as $target) {
+            if ($i >= $min) {
+                if ($target['score'] <= 0) break;
+                if ($target['score'] <= $highscore - $this->cutoff_difference) break;
+            }
+            $result[] = $target['target_id'];
+            if ($i==0) $highscore = $target['score'];
+            $i++;
+        }
+        return $result;
+    }
+
+    public function getGameState($user_id, $stage_id)
+    {
+        $statement = $this->db->prepare('SELECT data FROM game_state WHERE user_id = :user_id AND stage_id = :stage_id;');
+        $statement->execute(['user_id'=>$user_id,'stage_id'=>$stage_id]);
+        $data = $statement->fetchColumn(0);
+        return $data?unserialize($data):NULL;
     }
 
     public function getQuestionScoreSqlDivideHalf($qustion_answer_history, $temp_targets)
@@ -220,7 +309,7 @@ class Mifuminator {
         return $this->log_dir.date('Ymd', $time).'.log';
     }
 
-    public function guessTarget($qustion_answer_history, $max = 1, $min = 1)
+    public function guessTarget($qustion_answer_history, $max = 1, $min = 1, $except_target_ids = [])
     {
         $whenthen = '';
         $qcsv = '';
@@ -370,31 +459,84 @@ class Mifuminator {
         ');
     }
 
-    public function nextQuestion($qustion_answer_history = [], $temp_targets = [])
+    public function nextGameState($game_state, $state=NULL)
     {
-        $except_sql = '';
-        if (count($qustion_answer_history)>0) {
-            $except_sql = 'AND question_id NOT IN ('.implode(',',array_keys($qustion_answer_history)).')';
+        if ($state) $game_state['state'] = $state;
+        if ($game_state['stage_id']) $game_state['stage_id_history'][] = $game_state['stage_id'];
+        $game_state['stage_id'] = $this->generateStageID($game_state['user_id'], $game_state['game_id']);
+        $this->db->beginTransaction();
+        $this->setGameState($game_state);
+        $this->db->commit();
+        return $game_state;
+    }
+
+    public function nextQuestion($qustion_answer_history = [], $temp_targets = [], $function = NULL)
+    {
+        if ($function) {
+            $except_sql = '';
+            if (count($qustion_answer_history)>0) {
+                $except_sql = 'AND question_id NOT IN ('.implode(',',array_keys($qustion_answer_history)).')';
+            }
+            $score_sql = $this->$function($qustion_answer_history, $temp_targets);
+            $ret = $this->db->query('
+                SELECT *
+                    , '.$score_sql.' score
+                FROM question
+                WHERE deleted = 0
+                AND equal_to IS NULL
+                '.$except_sql.'
+                ORDER BY score DESC, RANDOM()
+                LIMIT 1;
+            ');
+            $question = $ret->fetch();
+            $question['function'] = $function;
+            $question['score_sql'] = $score_sql;
+            return $question;
+        }else {
+            if (mt_rand(0, 99)<$this->try_unknown_question_rate) {
+                return $this->nextQuestion($qustion_answer_history, $temp_targets, 'getQuestionScoreSqlUnknown');
+            }
+            $question = $this->nextQuestion($qustion_answer_history, $temp_targets, 'getQuestionScoreSqlDivideHalf');
+            if ($question['score']!=0) {
+                return $question;
+            }
+            $question = $this->nextQuestion($qustion_answer_history, $temp_targets, 'getQuestionScoreSqlDivideTop2');
+            if ($question['score']!=0) {
+                return $question;
+            }
+            return $this->nextQuestion($qustion_answer_history, $temp_targets, 'getQuestionScoreSqlUnknown');
         }
-        $score_sql = $this->getQuestionScoreSql($qustion_answer_history, $temp_targets);
-        $ret = $this->db->query('
-            SELECT *
-                , '.$score_sql.' score
-            FROM question
-            WHERE deleted = 0
-            AND equal_to IS NULL
-            '.$except_sql.'
-            ORDER BY score DESC, RANDOM()
-            LIMIT 1;
-        ');
-        $row = $ret->fetch();
-        $row['stage_id'] = mt_rand();
-        return $row;
+    }
+
+    public function setGameState($game_state)
+    {
+        $params = [
+            'user_id' => $game_state['user_id'],
+            'game_id' => $game_state['game_id'],
+            'stage_id' => $game_state['stage_id'],
+            'data' => serialize($game_state),
+        ];
+        $this->insertToTable('game_state', $params);
     }
 
     public function setScore($question_id, $target_id, $score, $replace=TRUE)
     {
         $this->insertToTable('score', ['question_id' => $question_id, 'target_id' => $target_id, 'score' => $score], $replace, FALSE);
+    }
+
+    public function startGame($user_id)
+    {
+        $game_state = [];
+        $game_id = $this->generateGameID($user_id);
+        $game_state['user_id'] = $user_id;
+        $game_state['game_id'] = $game_id;
+        $game_state['question'] = $this->nextQuestion();
+        $game_state['stage_number'] = 1;
+        $game_state['qustion_answer_history'] = [];
+        $game_state['targets'] = [];
+        $game_state['best_target_ids'] = [];
+        $game_state['except_targets'] = [];
+        return $this->nextGameState($game_state, self::STATE_ASK);
     }
 
     public function writeLog($user_id, $game_id, $target_id, $question_answer_list, $time=NULL, $insertToDB=FALSE)
