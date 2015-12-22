@@ -85,11 +85,17 @@ class Mifuminator {
             $this->analyzeFile($file, $count, $total_score);
         }
 
+        // ユーザーごとに平均を取って、1ユーザーの重みは何回やっても1回分
         $score_power = $this->score_max / $this->score[self::ANSWER_YES];
         $this->db->beginTransaction();
-        foreach ($count as $target_id => $count_row) {
-            foreach ($count_row as $question_id => $count_value) {
-                $average_score = $total_score[$target_id][$question_id] / $count_value;
+        foreach ($total_score as $target_id => $score_t) {
+            foreach ($score_t as $question_id => $score_q) {
+                $count_value = count($score_q);
+                $score_value = 0;
+                foreach ($score_q as $user_id => $score_u) {
+                    $score_value += $score_u / $count[$target_id][$question_id][$user_id];
+                }
+                $average_score = $score_value / $count_value;
                 $population_power = 1/(1+exp(-$this->logistic_regression_param*($count_value-1)));
                 $final_score = (int)($average_score * $population_power * $score_power);
                 $this->setScore($question_id, $target_id, $final_score);
@@ -112,8 +118,8 @@ class Mifuminator {
             $target_id = $array[3];
             for ($i=4; $i<count($array); $i++) {
                 list($question_id, $answer) = explode('=', $array[$i]);
-                $count[$target_id][$question_id]++;
-                $total_score[$target_id][$question_id] += $this->score[trim($answer)];
+                $count[$target_id][$question_id][$user_id]++;
+                $total_score[$target_id][$question_id][$user_id] += $this->score[trim($answer)];
             }
         }
         fclose($handle);
