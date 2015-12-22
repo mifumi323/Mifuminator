@@ -49,6 +49,9 @@ class Mifuminator {
     // 最後の1問を学習優先で選ぶ機能を使うか
     public $use_final_learning = TRUE;
 
+    // この回数だけ連続で同じ回答をした場合に、今までと違う回答を期待できる質問を探す(0で無効)
+    public $avoid_same_answer_number = 4;
+
     public function __construct($db_file_path, $tmp_dir, $log_dir)
     {
         $this->db_file_path = $db_file_path;
@@ -114,8 +117,8 @@ class Mifuminator {
 
     public function answer($game_state, $answer)
     {
-        $game_state['qustion_answer_history'][$game_state['question']['question_id']] = $answer;
-        $game_state['targets'] = $this->guessTarget($game_state['qustion_answer_history'], 100, 10);
+        $game_state['question_answer_history'][$game_state['question']['question_id']] = $answer;
+        $game_state['targets'] = $this->guessTarget($game_state['question_answer_history'], 100, 10, $game_state['except_target_ids']);
         $game_state['best_target_ids'] = $this->getBestTargetIDs($game_state['targets'], 0);
 
         if (count($game_state['best_target_ids'])==1 || in_array($game_state['stage_number'], $this->suggest_timings)) {
@@ -124,12 +127,12 @@ class Mifuminator {
                 $game_state['state'] = self::STATE_SUGGEST;
             }else {
                 $game_state['asked_unknown_question'] = TRUE;
-                $game_state['question'] = $this->nextQuestion($game_state['qustion_answer_history'], $game_state['best_target_ids'], 'getQuestionScoreSqlUnknown');
+                $game_state['question'] = $this->nextQuestion($game_state['question_answer_history'], $game_state['best_target_ids'], 'getQuestionScoreSqlUnknown');
                 $game_state['stage_number']++;
                 $game_state['state'] = self::STATE_ASK;
             }
         }else {
-            $game_state['question'] = $this->nextQuestion($game_state['qustion_answer_history'], $game_state['best_target_ids']);
+            $game_state['question'] = $this->nextQuestion($game_state['question_answer_history'], $game_state['best_target_ids']);
             if ($game_state['question']['function']=='getQuestionScoreSqlUnknown') {
                 $game_state['asked_unknown_question'] = TRUE;
             }
@@ -200,44 +203,25 @@ class Mifuminator {
         return $data?unserialize($data):NULL;
     }
 
-    public function getQuestionScoreSqlDivideHalf($qustion_answer_history, $temp_targets)
+    public function getQuestionScoreSqlDivideHalf($question_answer_history, $temp_targets)
     {
-        if (count($temp_targets)>1) {
-            $score_sql = '
-                (
-                    SELECT
-                        SUM(CASE WHEN score > 0 OR score < 0 THEN 1 ELSE 0 END)
-                        -
-                        ABS(
-                            SUM(CASE WHEN score > 0 THEN 1 ELSE 0 END)
-                            -
-                            SUM(CASE WHEN score < 0 THEN 1 ELSE 0 END)
-                        )
-                    FROM score
-                    WHERE score.question_id = question.question_id
-                    AND target_id IN ('.implode(',', $temp_targets).')
-                )
-            ';
-        }else {
-            $score_sql = '
-                (
-                    SELECT
-                        SUM(CASE WHEN score > 0 OR score < 0 THEN 1 END)
-                        -
-                        ABS(
-                            SUM(CASE WHEN score > 0 THEN 1 END)
-                            -
-                            SUM(CASE WHEN score < 0 THEN 1 END)
-                        )
-                    FROM score
-                    WHERE score.question_id = question.question_id
-                )
-            ';
-        }
+        $score_sql = '
+            (
+                SELECT
+                    MIN(
+                        SUM(CASE WHEN score > 0 THEN 1 ELSE 0 END)
+                        ,
+                        SUM(CASE WHEN score < 0 THEN 1 ELSE 0 END)
+                    )
+                FROM score
+                WHERE score.question_id = question.question_id
+                '.(count($temp_targets)>1?'AND target_id IN ('.implode(',', $temp_targets).')':'').'
+            )
+        ';
         return $score_sql;
     }
 
-    public function getQuestionScoreSqlDivideTop2($qustion_answer_history, $temp_targets)
+    public function getQuestionScoreSqlDivideTop2($question_answer_history, $temp_targets)
     {
         if (count($temp_targets)>1) {
             $score_sql = '
@@ -282,12 +266,40 @@ class Mifuminator {
 
     // 質問に全く優劣をつけない
     // (デバッグ用に使うことがあるかもしれない程度)
-    public function getQuestionScoreSqlFlat($qustion_answer_history, $temp_targets)
+    public function getQuestionScoreSqlFlat($question_answer_history, $temp_targets)
     {
         return '0';
     }
 
-    public function getQuestionScoreSqlUnknown($qustion_answer_history, $temp_targets)
+    public function getQuestionScoreSqlManyNo($question_answer_history, $temp_targets)
+    {
+        $score_sql = '
+            (
+                SELECT
+                    SUM(CASE WHEN score < 0 THEN 1 ELSE 0 END)
+                FROM score
+                WHERE score.question_id = question.question_id
+                '.(count($temp_targets)>0?'AND target_id IN ('.implode(',', $temp_targets).')':'').'
+            )
+        ';
+        return $score_sql;
+    }
+
+    public function getQuestionScoreSqlManyYes($question_answer_history, $temp_targets)
+    {
+        $score_sql = '
+            (
+                SELECT
+                    SUM(CASE WHEN score > 0 THEN 1 ELSE 0 END)
+                FROM score
+                WHERE score.question_id = question.question_id
+                '.(count($temp_targets)>0?'AND target_id IN ('.implode(',', $temp_targets).')':'').'
+            )
+        ';
+        return $score_sql;
+    }
+
+    public function getQuestionScoreSqlUnknown($question_answer_history, $temp_targets)
     {
         if (count($temp_targets)>0) {
             $target_count = 'COALESCE(SUM(CASE WHEN target_id IN ('.implode(',', $temp_targets).') THEN -(SELECT COUNT(question_id) FROM question) ELSE 0 END), 0)';
@@ -303,17 +315,31 @@ class Mifuminator {
         ';
     }
 
+    public function getQuestionScoreSqlWellKnown($question_answer_history, $temp_targets)
+    {
+        $score_sql = '
+            (
+                SELECT
+                    SUM(CASE WHEN score <> 0 THEN 1 ELSE 0 END)
+                FROM score
+                WHERE score.question_id = question.question_id
+                '.(count($temp_targets)>0?'AND target_id IN ('.implode(',', $temp_targets).')':'').'
+            )
+        ';
+        return $score_sql;
+    }
+
     public function getLogFileName($time=NULL)
     {
         if ($time===NULL) $time = time();
         return $this->log_dir.date('Ymd', $time).'.log';
     }
 
-    public function guessTarget($qustion_answer_history, $max = 1, $min = 1, $except_target_ids = [])
+    public function guessTarget($question_answer_history, $max = 1, $min = 1, $except_target_ids = [])
     {
         $whenthen = '';
         $qcsv = '';
-        foreach ($qustion_answer_history as $question_id => $answer) {
+        foreach ($question_answer_history as $question_id => $answer) {
             $qscore = $this->score[$answer];
             if ($qscore==0) continue;
             $whenthen .= "\nWHEN $question_id THEN $qscore";
@@ -322,6 +348,10 @@ class Mifuminator {
         }
         if (strlen($qcsv)==0) {
             return [];
+        }
+        $except_target_sql = '';
+        if (count($except_target_ids)>0) {
+            $except_target_sql = 'AND target_id NOT IN ('.implode(',',$except_target_ids).')';
         }
         $ret = $this->getDB()->query('
             SELECT
@@ -340,6 +370,7 @@ class Mifuminator {
             FROM target
             WHERE deleted = 0
             AND equal_to IS NULL
+            '.$except_target_sql.'
             ORDER BY score DESC, RANDOM()
             LIMIT '.$max.'
         ');
@@ -470,14 +501,14 @@ class Mifuminator {
         return $game_state;
     }
 
-    public function nextQuestion($qustion_answer_history = [], $temp_targets = [], $function = NULL)
+    public function nextQuestion($question_answer_history = [], $temp_targets = [], $function = NULL)
     {
         if ($function) {
             $except_sql = '';
-            if (count($qustion_answer_history)>0) {
-                $except_sql = 'AND question_id NOT IN ('.implode(',',array_keys($qustion_answer_history)).')';
+            if (count($question_answer_history)>0) {
+                $except_sql = 'AND question_id NOT IN ('.implode(',',array_keys($question_answer_history)).')';
             }
-            $score_sql = $this->$function($qustion_answer_history, $temp_targets);
+            $score_sql = $this->$function($question_answer_history, $temp_targets);
             $ret = $this->db->query('
                 SELECT *
                     , '.$score_sql.' score
@@ -493,18 +524,72 @@ class Mifuminator {
             $question['score_sql'] = $score_sql;
             return $question;
         }else {
+            // ワンパターン回避
+            if ($this->avoid_same_answer_number>0 && count($question_answer_history)>=$this->avoid_same_answer_number) {
+                $yes = TRUE;
+                $no = TRUE;
+                $dontknow = TRUE;
+                $answers = array_values($question_answer_history);
+                for ($i=1; $i<=$this->avoid_same_answer_number; $i++) {
+                    switch ($answers[count($answers)-$i]) {
+                        case self::ANSWER_YES:
+                        case self::ANSWER_PROBABLY:
+                            $no = FALSE;
+                            $dontknow = FALSE;
+                            break;
+                        case self::ANSWER_NO:
+                        case self::ANSWER_PROBABLY_NOT:
+                            $yes = FALSE;
+                            $dontknow = FALSE;
+                            break;
+                        case self::ANSWER_DONT_KNOW:
+                            $yes = FALSE;
+                            $no = FALSE;
+                            break;
+                        default:
+                            $yes = FALSE;
+                            $no = FALSE;
+                            $dontknow = FALSE;
+                            break;
+                    }
+                }
+                if ($yes) {
+                    $question = $this->nextQuestion($question_answer_history, $temp_targets, 'getQuestionScoreSqlManyNo');
+                }else if ($no) {
+                    $question = $this->nextQuestion($question_answer_history, $temp_targets, 'getQuestionScoreSqlManyYes');
+                }else if ($dontknow) {
+                    $question = $this->nextQuestion($question_answer_history, $temp_targets, 'getQuestionScoreSqlWellKnown');
+                }else {
+                    $question = ['score' => 0];
+                }
+                if ($question['score']!=0) {
+                    return $question;
+                }
+            }
+
+            // ランダムで未知の質問を出す
             if (mt_rand(0, 99)<$this->try_unknown_question_rate) {
-                return $this->nextQuestion($qustion_answer_history, $temp_targets, 'getQuestionScoreSqlUnknown');
+                return $this->nextQuestion($question_answer_history, $temp_targets, 'getQuestionScoreSqlUnknown');
             }
-            $question = $this->nextQuestion($qustion_answer_history, $temp_targets, 'getQuestionScoreSqlDivideHalf');
+
+            // 判断に有利な質問を選ぶ
+            if (count($temp_targets)==2) {
+                $question = $this->nextQuestion($question_answer_history, $temp_targets, 'getQuestionScoreSqlDivideTop2');
+                if ($question['score']!=0) {
+                    return $question;
+                }
+            }
+            $question = $this->nextQuestion($question_answer_history, $temp_targets, 'getQuestionScoreSqlDivideHalf');
             if ($question['score']!=0) {
                 return $question;
             }
-            $question = $this->nextQuestion($qustion_answer_history, $temp_targets, 'getQuestionScoreSqlDivideTop2');
+            $question = $this->nextQuestion($question_answer_history, $temp_targets, 'getQuestionScoreSqlDivideTop2');
             if ($question['score']!=0) {
                 return $question;
             }
-            return $this->nextQuestion($qustion_answer_history, $temp_targets, 'getQuestionScoreSqlUnknown');
+
+            // どうしようもないので次回にご期待ください
+            return $this->nextQuestion($question_answer_history, $temp_targets, 'getQuestionScoreSqlUnknown');
         }
     }
 
@@ -532,7 +617,7 @@ class Mifuminator {
         $game_state['game_id'] = $game_id;
         $game_state['question'] = $this->nextQuestion();
         $game_state['stage_number'] = 1;
-        $game_state['qustion_answer_history'] = [];
+        $game_state['question_answer_history'] = [];
         $game_state['targets'] = [];
         $game_state['best_target_ids'] = [];
         $game_state['except_targets'] = [];
