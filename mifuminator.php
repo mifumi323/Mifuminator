@@ -56,6 +56,12 @@ class Mifuminator {
     // この回数だけ連続で同じ回答をした場合に、今までと違う回答を期待できる質問を探す(0で無効)
     public $avoid_same_answer_number = 4;
 
+    // 質問指定の学習時に提示する候補数
+    public $learn_target_max = 10;
+
+    // 質問指定の学習時に提示する候補に交ぜる学習データ少な目のデータ数
+    public $learn_target_unknown = 1;
+
     public function __construct($db_file_path, $tmp_dir, $log_dir)
     {
         $this->db_file_path = $db_file_path;
@@ -375,13 +381,7 @@ class Mifuminator {
         return $score_sql;
     }
 
-    public function getLogFileName($time=NULL)
-    {
-        if ($time===NULL) $time = time();
-        return $this->log_dir.date('Ymd', $time).'.log';
-    }
-
-    public function guessTarget($question_answer_history, $max = 1, $min = 1, $except_target_ids = [])
+    public function getTargetScoreSql($question_answer_history)
     {
         $whenthen = '';
         $qcsv = '';
@@ -393,8 +393,30 @@ class Mifuminator {
             $qcsv .= $question_id;
         }
         if (strlen($qcsv)==0) {
-            return [];
+            return '0';
         }
+        return '
+            COALESCE((
+                SELECT
+                    SUM(score * CASE question_id
+                    '.$whenthen.'
+                    END
+                    )
+                FROM score
+                WHERE score.target_id = target.target_id
+                AND score.question_id IN ('.$qcsv.')
+            ), 0)
+        ';
+    }
+
+    public function getLogFileName($time=NULL)
+    {
+        if ($time===NULL) $time = time();
+        return $this->log_dir.date('Ymd', $time).'.log';
+    }
+
+    public function guessTarget($question_answer_history, $max = 1, $min = 1, $except_target_ids = [])
+    {
         $except_target_sql = '';
         if (count($except_target_ids)>0) {
             $except_target_sql = 'AND target_id NOT IN ('.implode(',',$except_target_ids).')';
@@ -403,16 +425,7 @@ class Mifuminator {
             SELECT
                 target_id,
                 content,
-                COALESCE((
-                    SELECT
-                        SUM(score * CASE question_id
-                        '.$whenthen.'
-                        END
-                        )
-                    FROM score
-                    WHERE score.target_id = target.target_id
-                    AND score.question_id IN ('.$qcsv.')
-                ), 0) score
+                '.$this->getTargetScoreSql($question_answer_history).' score
             FROM target
             WHERE deleted = 0
             AND equal_to IS NULL
@@ -559,12 +572,52 @@ class Mifuminator {
         $statement->execute(['question_id' => $question_id]);
         $question = $statement->fetch();
         $game_state['question'] = $question;
+        $question_answer_history = $game_state['question_answer_history'];
 
-        $max = 10;
-        if (count($game_state['targets'])<$max) {
+        $learn_targets = [];
+        if (isset($game_state['final_target'])) $learn_targets[] = $game_state['final_target'];
+
+        $limit = $this->learn_target_max - count($learn_targets) - $this->learn_target_unknown;
+        if ($limit>0) {
             $except_sql = '';
-            if (count($game_state['targets'])>0) {
-                foreach ($game_state['targets'] as $target) {
+            if (count($learn_targets)>0) {
+                foreach ($learn_targets as $target) {
+                    if (strlen($except_sql)>0) $except_sql .= ',';
+                    $except_sql .= (int)$target['target_id'];
+                }
+                $except_sql = 'AND target_id NOT IN ('.$except_sql.')';
+            }
+            $statement = $this->db->prepare('
+                SELECT *
+                    , (
+                        SELECT -COUNT(*)
+                        FROM score
+                        WHERE score.target_id = target.target_id
+                        AND score.question_id = :question_id
+                    ) score
+                    , '.$this->getTargetScoreSql($question_answer_history).' score2
+                    , (
+                        SELECT -COUNT(*)
+                        FROM score
+                        WHERE score.target_id = target.target_id
+                    ) score3
+                FROM target
+                WHERE deleted = 0
+                AND equal_to IS NULL
+                '.$except_sql.'
+                ORDER BY score DESC, score2 DESC, score3 DESC, RANDOM()
+                LIMIT '.$limit.';
+            ');
+            $statement->execute(['question_id' => $question_id]);
+            $targets = $statement->fetchAll();
+            $learn_targets = array_merge($learn_targets, $targets);
+        }
+
+        $limit = $this->learn_target_max - count($learn_targets);
+        if ($limit>0) {
+            $except_sql = '';
+            if (count($learn_targets)>0) {
+                foreach ($learn_targets as $target) {
                     if (strlen($except_sql)>0) $except_sql .= ',';
                     $except_sql .= (int)$target['target_id'];
                 }
@@ -588,12 +641,14 @@ class Mifuminator {
                 AND equal_to IS NULL
                 '.$except_sql.'
                 ORDER BY score DESC, score2 DESC, RANDOM()
-                LIMIT '.($max-count($game_state['targets'])).';
+                LIMIT '.$limit.';
             ');
             $statement->execute(['question_id' => $question_id]);
             $targets = $statement->fetchAll();
-            $game_state['targets'] = array_merge($game_state['targets'], $targets);
+            $learn_targets = array_merge($learn_targets, $targets);
         }
+
+        $game_state['targets'] = $learn_targets;
 
         return $this->nextGameState($game_state, self::STATE_LEARN, [
             'learn',
