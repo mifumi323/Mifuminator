@@ -818,6 +818,21 @@ class Mifuminator {
         return $this->nextGameState($game_state, self::STATE_ASK);
     }
 
+    public function teach($game_state, $target_id)
+    {
+        $this->deleteGameState($game_id);
+        $params = ['target_id' => $target_id];
+        $statement = $this->getDB()->prepare('
+            SELECT *
+            FROM target
+            WHERE target_id = :target_id
+        ');
+        $statement->execute($params);
+        $game_state['final_target'] = $statement->fetch();
+        $this->writeLog($game_state['user_id'], $game_state['game_id'], $game_state['final_target']['target_id'], $game_state['question_answer_history'], NULL, TRUE);
+        return $this->nextGameState($game_state, self::STATE_YOUWIN);
+    }
+
     public function writeLog($user_id, $game_id, $target_id, $question_answer_list, $time=NULL, $insertToDB=FALSE)
     {
         if ($time===NULL) $time = time();
