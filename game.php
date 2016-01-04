@@ -78,7 +78,7 @@ class Game {
         $score = $this->getGameOption($game_state, 'score');
 
         $game_state['targets'] = $this->getLogic()->guessTarget($game_state['question_answer_history'], 100, 10, $game_state['except_target_ids'], $cutoff_difference, $score);
-        $game_state['best_target_ids'] = $this->getLogic()->getBestTargetIDs($game_state['targets'], 100, 0, [], $cutoff_difference);
+        $game_state['best_target_ids'] = $this->getLogic()->getBestTargetIDs($game_state['targets'], 100, 0, $cutoff_difference);
         $game_state['question'] = $this->getLogic()->nextQuestion($game_state['question_answer_history'], $game_state['best_target_ids'], NULL, $avoid_same_answer_number, $try_unknown_question_rate);
         $game_state['stage_number']++;
 
