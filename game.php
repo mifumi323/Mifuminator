@@ -1,6 +1,13 @@
 <?php
 namespace MifuminLib\Mifuminator;
 
+class GameInvalidTargetException extends \Exception {
+    public function __construct($message=NULL, $code=0, Exception $previous=NULL)
+    {
+        parent::__construct($message, $code, $previous);
+    }
+}
+
 class Game {
     private $da;
     private $db;
@@ -371,6 +378,9 @@ class Game {
 
     public function teach($game_state, $target_id)
     {
+        if (!in_array($target_id, array_map(function($target) { return $target['target_id']; }, $game_state['targets']))) {
+            throw new GameInvalidTargetException();
+        }
         $this->deleteGameState($game_id);
         $params = ['target_id' => $target_id];
         $ret = $this->getDB()->query('
