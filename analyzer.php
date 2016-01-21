@@ -13,7 +13,7 @@ class Analyzer {
         $this->option = $da->getOption();
     }
 
-    public function analyze()
+    public function analyze($full=FALSE)
     {
         // 読み替えデータ
         $question_alias = [];
@@ -27,17 +27,24 @@ class Analyzer {
             $target_alias[$row['from_id']] = $row['to_id'];
         }
 
+        // ブラックリスト
+        $user_black_list = [];
+        $ret = $this->db->query('SELECT user_id FROM user_black_list;');
+        $user_black_list = array_map(function($row) { return $row['user_id']; }, $ret);
+
+
         // ファイルごとの統計
         $count = array();
         $total_score = array();
         foreach (glob($this->da->getLogFileNameByName('*')) as $file) {
             if (basename($file)==$this->da->getLogFileName()) continue;
-            $this->analyzeFile($file, $count, $total_score, $question_alias, $target_alias);
+            $this->analyzeFile($file, $count, $total_score, $question_alias, $target_alias, $user_black_list);
         }
 
         // ユーザーごとに平均を取って、1ユーザーの重みは何回やっても1回分
         $score_power = $this->option->score_max / $this->option->score[Mifuminator::ANSWER_YES];
         $this->db->begin();
+        if ($full) $this->db->exec('DELETE FROM score;');
         foreach ($total_score as $target_id => $score_t) {
             foreach ($score_t as $question_id => $score_q) {
                 $count_value = count($score_q);
@@ -62,7 +69,7 @@ class Analyzer {
         return TRUE;
     }
 
-    public function analyzeFile($file, &$count, &$total_score, $question_alias=[], $target_alias=[])
+    public function analyzeFile($file, &$count, &$total_score, $question_alias=[], $target_alias=[], $user_black_list=[])
     {
         $handle = fopen($file, 'r');
         while (($array = fgetcsv($handle)) !== FALSE) {
@@ -71,6 +78,7 @@ class Analyzer {
             $user_id = $array[1];
             $game_id = $array[2];
             $target_id = $array[3];
+            if (in_array($user_id, $user_black_list)) continue;
             if (isset($target_alias[$target_id])) $target_id = $target_alias[$target_id];
             if ($target_id<=0) continue;
             for ($i=4; $i<count($array); $i++) {
