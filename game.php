@@ -276,6 +276,7 @@ class Game {
         $this->getDA()->addTarget($target, $game_state['user_id']);
         $ret = $this->getDB()->query('SELECT * FROM target ORDER BY target_id DESC LIMIT 1;');
         $game_state['targets'] = $ret;
+        $game_state['final_target'] = $ret[0];
         $this->getDB()->commit();
 
         $target_id = $game_state['targets'][0]['target_id'];
