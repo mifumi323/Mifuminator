@@ -60,21 +60,22 @@ class Game {
     public function checkAnswer($game_state, $correct)
     {
         $suggest_timings = $this->getGameOption($game_state, 'suggest_timings');
-        $this->deleteGameState($game_state['game_id']);
         if ($correct) {
             $game_state['final_target'] = $game_state['targets'][0];
             $this->getDA()->writeLog($game_state['user_id'], $game_state['game_id'], $game_state['final_target']['target_id'], $game_state['question_answer_history'], NULL, TRUE);
-            $game_state['state'] = Mifuminator::STATE_CORRECT;
+            $game_state['result_state'] = $state = Mifuminator::STATE_CORRECT;
+            $delete_history = TRUE;
         }else {
             if ($game_state['stage_number']<max($suggest_timings)) {
                 $game_state['except_target_ids'][] = $game_state['targets'][0]['target_id'];
-                $game_state['state'] = Mifuminator::STATE_WRONG;
+                $state = Mifuminator::STATE_WRONG;
+                $delete_history = FALSE;
             }else {
                 return $this->selectTarget($game_state);
             }
         }
 
-        return $this->nextGameState($game_state);
+        return $this->nextGameState($game_state, $state, [], $delete_history);
     }
 
     public function continueGame($game_state)
@@ -152,6 +153,7 @@ class Game {
                 $this->getDA()->writeLog($user_id, $game_id, $target_id, [$question_id => $answer], NULL, TRUE);
             }
         }
+        return $this->nextGameState($game_state, $game_state['result_state'], [], TRUE);
     }
 
     public function learningStage($game_state, $question_id)
@@ -247,13 +249,14 @@ class Game {
         ]);
     }
 
-    public function nextGameState($game_state, $state=NULL, $allowed_method=[])
+    public function nextGameState($game_state, $state=NULL, $allowed_method=[], $delete_history=FALSE)
     {
         if ($state) $game_state['state'] = $state;
-        if ($game_state['stage_id']) $game_state['stage_id_history'][] = $game_state['stage_id'];
+        $game_state['previous_stage_id'] = $delete_history ? NULL : $game_state['stage_id'];
         $game_state['stage_id'] = $this->generateStageID($game_state['user_id'], $game_state['game_id']);
         $game_state['allowed_method'] = $allowed_method;
         $this->getDB()->begin();
+        if ($delete_history) $this->deleteGameState($game_state['game_id']);
         $this->setGameState($game_state);
         $this->getDB()->commit();
         return $game_state;
@@ -282,7 +285,7 @@ class Game {
         $target_id = $game_state['targets'][0]['target_id'];
         $this->getDA()->writeLog($game_state['user_id'], $game_state['game_id'], $target_id, $game_state['question_answer_history'], NULL, TRUE);
 
-        return $this->nextGameState($game_state, Mifuminator::STATE_YOUWIN, []);
+        return $this->nextGameState($game_state, $game_state['result_state'] = Mifuminator::STATE_YOUWIN, [], TRUE);
     }
 
     public function searchQuestion($game_state, $search)
@@ -382,7 +385,6 @@ class Game {
         if (!in_array($target_id, array_map(function($target) { return $target['target_id']; }, $game_state['targets']))) {
             throw new GameInvalidTargetException();
         }
-        $this->deleteGameState($game_id);
         $params = ['target_id' => $target_id];
         $ret = $this->getDB()->query('
             SELECT *
@@ -391,6 +393,6 @@ class Game {
         ', $params);
         $game_state['final_target'] = $ret[0];
         $this->getDA()->writeLog($game_state['user_id'], $game_state['game_id'], $game_state['final_target']['target_id'], $game_state['question_answer_history'], NULL, TRUE);
-        return $this->nextGameState($game_state, Mifuminator::STATE_YOUWIN);
+        return $this->nextGameState($game_state, $game_state['result_state'] = Mifuminator::STATE_YOUWIN, [], TRUE);
     }
 }
