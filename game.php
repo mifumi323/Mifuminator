@@ -371,11 +371,11 @@ class Game {
         $game_id = $this->generateGameID($user_id);
         $game_state['user_id'] = $user_id;
         $game_state['game_id'] = $game_id;
-        $game_state['question'] = $this->getLogic()->nextQuestion([], [], NULL, $avoid_same_answer_number, $try_unknown_question_rate);
+        $game_state['targets'] = $this->getLogic()->guessTarget([], 100, 100, [], 0, []);
+        $game_state['best_target_ids'] = $this->getLogic()->getBestTargetIDs($game_state['targets'], 100, 100, 0);
+        $game_state['question'] = $this->getLogic()->nextQuestion([], $game_state['best_target_ids'], NULL, $avoid_same_answer_number, $try_unknown_question_rate);
         $game_state['stage_number'] = 1;
         $game_state['question_answer_history'] = [];
-        $game_state['targets'] = [];
-        $game_state['best_target_ids'] = [];
         $game_state['except_targets'] = [];
         return $this->nextGameState($game_state, Mifuminator::STATE_ASK);
     }
