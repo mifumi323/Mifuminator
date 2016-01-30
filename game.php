@@ -156,7 +156,7 @@ class Game {
         return $this->nextGameState($game_state, $game_state['result_state'], [], TRUE);
     }
 
-    public function learningStage($game_state, $question_id)
+    public function learningStage($game_state, $question_id, $delete_history=FALSE)
     {
         $learn_target_max = $this->getGameOption($game_state, 'learn_target_max');
         $learn_target_unknown = $this->getGameOption($game_state, 'learn_target_unknown');
@@ -246,7 +246,7 @@ class Game {
 
         return $this->nextGameState($game_state, Mifuminator::STATE_LEARN, [
             'learn',
-        ]);
+        ], $delete_history);
     }
 
     public function nextGameState($game_state, $state=NULL, $allowed_method=[], $delete_history=FALSE)
@@ -270,7 +270,7 @@ class Game {
         $question_id = $ret->fetchColumn();
         $this->getDB()->commit();
 
-        return $this->learningStage($game_state, $question_id);
+        return $this->learningStage($game_state, $question_id, TRUE);
     }
 
     public function newTarget($game_state, $target)
