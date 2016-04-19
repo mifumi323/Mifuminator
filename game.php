@@ -161,9 +161,16 @@ class Game {
         $learn_target_max = $this->getGameOption($game_state, 'learn_target_max');
         $learn_target_unknown = $this->getGameOption($game_state, 'learn_target_unknown');
         $score = $this->getGameOption($game_state, 'score');
+        $question_additional_column = $this->getOption()->question_additional_column;
+        if (strlen($question_additional_column)>0) $question_additional_column = ','.$question_additional_column;
+        $target_additional_column = $this->getOption()->target_additional_column;
+        if (strlen($target_additional_column)>0) $target_additional_column = ','.$target_additional_column;
 
         $ret = $this->getDB()->query('
-            SELECT *
+            SELECT
+                question_id
+                , content
+                '.$question_additional_column.'
             FROM question
             WHERE question_id = :question_id
             LIMIT 1;
@@ -186,7 +193,9 @@ class Game {
                 $except_sql = 'AND target_id NOT IN ('.$except_sql.')';
             }
             $targets = $this->getDB()->query('
-                SELECT *
+                SELECT
+                    target_id
+                    , content
                     , (
                         SELECT -COUNT(*)
                         FROM score
@@ -199,6 +208,7 @@ class Game {
                         FROM score
                         WHERE score.target_id = target.target_id
                     ) score3
+                    '.$target_additional_column.'
                 FROM target
                 WHERE deleted = 0
                 AND equal_to IS NULL
@@ -220,7 +230,9 @@ class Game {
                 $except_sql = 'AND target_id NOT IN ('.$except_sql.')';
             }
             $targets = $this->getDB()->query('
-                SELECT *
+                SELECT
+                    target_id
+                    , content
                     , (
                         SELECT -COUNT(*)
                         FROM score
@@ -232,6 +244,7 @@ class Game {
                         FROM score
                         WHERE score.target_id = target.target_id
                     ) score2
+                    '.$target_additional_column.'
                 FROM target
                 WHERE deleted = 0
                 AND equal_to IS NULL
@@ -290,12 +303,15 @@ class Game {
 
     public function searchQuestion($game_state, $search)
     {
+        $question_additional_column = $this->getOption()->question_additional_column;
+        if (strlen($question_additional_column)>0) $question_additional_column = ','.$question_additional_column;
         $params = ['content' => '%'.$search.'%'];
         $statement = $this->getDB()->prepare('
             SELECT
                 question_id,
                 content,
                 '.$this->getLogic()->getQuestionScoreSqlUnknown($game_state['question_answer_history'], [$game_state['targets'][0]['target_id']]).' score
+                '.$question_additional_column.'
             FROM question
             WHERE deleted = 0
             AND equal_to IS NULL
@@ -316,11 +332,14 @@ class Game {
 
     public function searchTarget($game_state, $search)
     {
+        $target_additional_column = $this->getOption()->target_additional_column;
+        if (strlen($target_additional_column)>0) $target_additional_column = ','.$target_additional_column;
         $params = ['content' => '%'.$search.'%'];
         $statement = $this->getDB()->prepare('
             SELECT
                 target_id,
                 content
+                '.$target_additional_column.'
             FROM target
             WHERE deleted = 0
             AND equal_to IS NULL
@@ -385,9 +404,14 @@ class Game {
         if (!in_array($target_id, array_map(function($target) { return $target['target_id']; }, $game_state['targets']))) {
             throw new GameInvalidTargetException();
         }
+        $target_additional_column = $this->getOption()->target_additional_column;
+        if (strlen($target_additional_column)>0) $target_additional_column = ','.$target_additional_column;
         $params = ['target_id' => $target_id];
         $ret = $this->getDB()->query('
-            SELECT *
+            SELECT
+                target_id,
+                content
+                '.$target_additional_column.'
             FROM target
             WHERE target_id = :target_id
         ', $params);

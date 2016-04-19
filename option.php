@@ -40,4 +40,10 @@ class Option {
 
     // 質問指定の学習時に提示する候補に交ぜる学習データ少な目のデータ数
     public $learn_target_unknown = 1;
+
+    // 質問の追加項目(コンマ区切りのSQL文。SELECT文に直接挿入されます)
+    public $question_additional_column = NULL;
+
+    // 対象の追加項目(コンマ区切りのSQL文。SELECT文に直接挿入されます)
+    public $target_additional_column = NULL;
 }

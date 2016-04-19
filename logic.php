@@ -3,10 +3,12 @@ namespace MifuminLib\Mifuminator;
 
 class Logic {
     private $db;
+    private $option;
 
-    public function __construct($db)
+    public function __construct($db, $option)
     {
         $this->db = $db;
+        $this->option = $option;
     }
 
     public function getBestTargetIDs($targets, $max, $min, $cutoff_difference)
@@ -29,6 +31,11 @@ class Logic {
     public function getDB()
     {
         return $this->db;
+    }
+
+    public function getOption()
+    {
+        return $this->option;
     }
 
     public function getQuestionScoreSqlDivideHalf($question_answer_history, $temp_targets)
@@ -184,11 +191,14 @@ class Logic {
         if (count($except_target_ids)>0) {
             $except_target_sql = 'AND target_id NOT IN ('.implode(',',$except_target_ids).')';
         }
+        $target_additional_column = $this->getOption()->target_additional_column;
+        if (strlen($target_additional_column)>0) $target_additional_column = ','.$target_additional_column;
         $ret = $this->getDB()->query('
             SELECT
                 target_id,
                 content,
                 '.$this->getTargetScoreSql($question_answer_history, $score).' score
+                '.$target_additional_column.'
             FROM target
             WHERE deleted = 0
             AND equal_to IS NULL
@@ -218,10 +228,15 @@ class Logic {
             if (count($question_answer_history)>0) {
                 $except_sql = 'AND question_id NOT IN ('.implode(',',array_keys($question_answer_history)).')';
             }
+            $question_additional_column = $this->getOption()->question_additional_column;
+            if (strlen($question_additional_column)>0) $question_additional_column = ','.$question_additional_column;
             $score_sql = $this->$function($question_answer_history, $temp_targets);
             $ret = $this->getDB()->query('
-                SELECT *
-                    , '.$score_sql.' score
+                SELECT
+                    question_id,
+                    content,
+                    '.$score_sql.' score
+                    '.$question_additional_column.'
                 FROM question
                 WHERE deleted = 0
                 AND equal_to IS NULL
