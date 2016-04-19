@@ -30,7 +30,7 @@ class Option {
     public $suggest_timings = [20, 40, 50];
 
     // 最後の1問を学習優先で選ぶ機能を使うか
-    public $use_final_learning = TRUE;
+    public $use_final_learning = true;
 
     // この回数だけ連続で同じ回答をした場合に、今までと違う回答を期待できる質問を探す(0で無効)
     public $avoid_same_answer_number = 4;
@@ -42,8 +42,8 @@ class Option {
     public $learn_target_unknown = 1;
 
     // 質問の追加項目(コンマ区切りのSQL文。SELECT文に直接挿入されます)
-    public $question_additional_column = NULL;
+    public $question_additional_column = null;
 
     // 対象の追加項目(コンマ区切りのSQL文。SELECT文に直接挿入されます)
-    public $target_additional_column = NULL;
+    public $target_additional_column = null;
 }

@@ -29,7 +29,7 @@ class Database {
     public function exec($sql, $params=[])
     {
         $statement = $this->prepare($sql);
-        if ($statement!==FALSE) {
+        if ($statement!==false) {
             $statement->execute($params);
         }
         return $statement;
@@ -42,7 +42,7 @@ class Database {
     }
 
     // 挿入
-    public function insert($table, $params, $sqlparams=[], $tryReplace=FALSE, $throwOnConflict=TRUE)
+    public function insert($table, $params, $sqlparams=[], $tryReplace=false, $throwOnConflict=true)
     {
         $values = [];
         foreach ($params as $key => $value) {
@@ -51,11 +51,11 @@ class Database {
         $columns = array_keys($params)+array_keys($sqlparams);
         $sql = 'INSERT'.($tryReplace?' OR REPLACE':($throwOnConflict?'':' OR IGNORE')).' INTO '.$table.' ('.implode(',', $columns).') VALUES ('.implode(',', array_keys($values)+array_values($sqlparams)).')';
         $statement = $this->prepare($sql);
-        if ($statement===FALSE) {
-            return FALSE;
+        if ($statement===false) {
+            return false;
         }else {
             $statement->execute($values);
-            return TRUE;
+            return true;
         }
     }
 
@@ -69,8 +69,8 @@ class Database {
     public function query($sql, $params=[])
     {
         $statement = $this->exec($sql, $params);
-        if ($statement===FALSE) {
-            return FALSE;
+        if ($statement===false) {
+            return false;
         }else {
             return $statement->fetchAll(\PDO::FETCH_ASSOC);
         }

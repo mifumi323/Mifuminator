@@ -251,30 +251,30 @@ class Logic {
         }else {
             // ワンパターン回避
             if ($avoid_same_answer_number>0 && count($question_answer_history)>=$avoid_same_answer_number) {
-                $yes = TRUE;
-                $no = TRUE;
-                $dontknow = TRUE;
+                $yes = true;
+                $no = true;
+                $dontknow = true;
                 $answers = array_values($question_answer_history);
                 for ($i=1; $i<=$avoid_same_answer_number; $i++) {
                     switch ($answers[count($answers)-$i]) {
                         case Mifuminator::ANSWER_YES:
                         case Mifuminator::ANSWER_PROBABLY:
-                            $no = FALSE;
-                            $dontknow = FALSE;
+                            $no = false;
+                            $dontknow = false;
                             break;
                         case Mifuminator::ANSWER_NO:
                         case Mifuminator::ANSWER_PROBABLY_NOT:
-                            $yes = FALSE;
-                            $dontknow = FALSE;
+                            $yes = false;
+                            $dontknow = false;
                             break;
                         case Mifuminator::ANSWER_DONT_KNOW:
-                            $yes = FALSE;
-                            $no = FALSE;
+                            $yes = false;
+                            $no = false;
                             break;
                         default:
-                            $yes = FALSE;
-                            $no = FALSE;
-                            $dontknow = FALSE;
+                            $yes = false;
+                            $no = false;
+                            $dontknow = false;
                             break;
                     }
                 }

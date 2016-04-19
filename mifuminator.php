@@ -4,13 +4,13 @@ namespace MifuminLib\Mifuminator;
 class Mifuminator {
     private $db_file_path;
 
-    private $db = NULL;
-    private $da = NULL;
-    private $analyzer = NULL;
-    private $option = NULL;
-    private $installer = NULL;
-    private $logic = NULL;
-    private $game = NULL;
+    private $db = null;
+    private $da = null;
+    private $analyzer = null;
+    private $option = null;
+    private $installer = null;
+    private $logic = null;
+    private $game = null;
 
     const ANSWER_YES = 1;
     const ANSWER_NO = 2;

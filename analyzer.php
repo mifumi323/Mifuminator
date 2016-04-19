@@ -13,7 +13,7 @@ class Analyzer {
         $this->option = $da->getOption();
     }
 
-    public function analyze($full=FALSE)
+    public function analyze($full=false)
     {
         // 読み替えデータ
         $question_alias = [];
@@ -66,13 +66,13 @@ class Analyzer {
         ');
         $this->db->commit();
         $this->db->exec('VACUUM;');
-        return TRUE;
+        return true;
     }
 
     public function analyzeFile($file, &$count, &$total_score, $question_alias=[], $target_alias=[], $user_black_list=[])
     {
         $handle = fopen($file, 'r');
-        while (($array = fgetcsv($handle)) !== FALSE) {
+        while (($array = fgetcsv($handle)) !== false) {
             if (count($array)<5) break;
             $timestamp = $array[0];
             $user_id = $array[1];

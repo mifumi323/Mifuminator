@@ -11,12 +11,12 @@ class DataAccess {
         $this->option = $option;
     }
 
-    public function addTarget($target, $user_id = NULL)
+    public function addTarget($target, $user_id = null)
     {
         $this->db->insert('target', ['content' => $target, 'create_user_id' => $user_id, 'update_user_id' => $user_id]);
     }
 
-    public function addQuestion($question, $user_id = NULL)
+    public function addQuestion($question, $user_id = null)
     {
         $this->db->insert('question', ['content' => $question, 'create_user_id' => $user_id, 'update_user_id' => $user_id]);
     }
@@ -26,9 +26,9 @@ class DataAccess {
         return $this->db;
     }
 
-    public function getLogFileName($time=NULL)
+    public function getLogFileName($time=null)
     {
-        if ($time===NULL) $time = time();
+        if ($time===null) $time = time();
         return $this->getLogFileNameByName(date('Ymd', $time));
     }
 
@@ -42,19 +42,19 @@ class DataAccess {
         return $this->option;
     }
 
-    public function setScore($question_id, $target_id, $score, $replace=TRUE)
+    public function setScore($question_id, $target_id, $score, $replace=true)
     {
-        $this->db->insert('score', ['question_id' => $question_id, 'target_id' => $target_id, 'score' => $score], [], $replace, FALSE);
+        $this->db->insert('score', ['question_id' => $question_id, 'target_id' => $target_id, 'score' => $score], [], $replace, false);
     }
 
-    public function writeLog($user_id, $game_id, $target_id, $question_answer_list, $time=NULL, $insertToDB=FALSE)
+    public function writeLog($user_id, $game_id, $target_id, $question_answer_list, $time=null, $insertToDB=false)
     {
-        if ($time===NULL) $time = time();
+        if ($time===null) $time = time();
         $line = date('c', time()).','.$user_id.','.$game_id.','.$target_id;
         if ($insertToDB) $this->db->begin();
         foreach ($question_answer_list as $question_id => $answer) {
             $line .= ','.$question_id.'='.$answer;
-            if ($insertToDB) $this->setScore($question_id, $target_id, (int)(0.5 * $this->option->score[$answer] * $this->option->score_max / $this->option->score[Mifuminator::ANSWER_YES]), FALSE);
+            if ($insertToDB) $this->setScore($question_id, $target_id, (int)(0.5 * $this->option->score[$answer] * $this->option->score_max / $this->option->score[Mifuminator::ANSWER_YES]), false);
         }
         if ($insertToDB) $this->db->commit();
         file_put_contents($this->getLogFileName($time), $line."\n", FILE_APPEND);

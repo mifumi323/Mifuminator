@@ -2,7 +2,7 @@
 namespace MifuminLib\Mifuminator;
 
 class GameInvalidTargetException extends \Exception {
-    public function __construct($message=NULL, $code=0, Exception $previous=NULL)
+    public function __construct($message=null, $code=0, Exception $previous=null)
     {
         parent::__construct($message, $code, $previous);
     }
@@ -37,18 +37,18 @@ class Game {
 
         if (count($game_state['best_target_ids'])==1 || in_array($game_state['stage_number'], $suggest_timings)) {
             if (!$use_final_learning || $game_state['asked_unknown_question'] || $game_state['stage_number']>=$suggest_timings[0]) {
-                $game_state['question'] = NULL;
+                $game_state['question'] = null;
                 $game_state['state'] = Mifuminator::STATE_SUGGEST;
             }else {
-                $game_state['asked_unknown_question'] = TRUE;
+                $game_state['asked_unknown_question'] = true;
                 $game_state['question'] = $this->getLogic()->nextQuestion($game_state['question_answer_history'], $game_state['best_target_ids'], 'getQuestionScoreSqlUnknown', $avoid_same_answer_number, $try_unknown_question_rate);
                 $game_state['stage_number']++;
                 $game_state['state'] = Mifuminator::STATE_ASK;
             }
         }else {
-            $game_state['question'] = $this->getLogic()->nextQuestion($game_state['question_answer_history'], $game_state['best_target_ids'], NULL, $avoid_same_answer_number, $try_unknown_question_rate);
+            $game_state['question'] = $this->getLogic()->nextQuestion($game_state['question_answer_history'], $game_state['best_target_ids'], null, $avoid_same_answer_number, $try_unknown_question_rate);
             if ($game_state['question']['function']=='getQuestionScoreSqlUnknown') {
-                $game_state['asked_unknown_question'] = TRUE;
+                $game_state['asked_unknown_question'] = true;
             }
             $game_state['stage_number']++;
             $game_state['state'] = Mifuminator::STATE_ASK;
@@ -62,14 +62,14 @@ class Game {
         $suggest_timings = $this->getGameOption($game_state, 'suggest_timings');
         if ($correct) {
             $game_state['final_target'] = $game_state['targets'][0];
-            $this->getDA()->writeLog($game_state['user_id'], $game_state['game_id'], $game_state['final_target']['target_id'], $game_state['question_answer_history'], NULL, TRUE);
+            $this->getDA()->writeLog($game_state['user_id'], $game_state['game_id'], $game_state['final_target']['target_id'], $game_state['question_answer_history'], null, true);
             $game_state['result_state'] = $state = Mifuminator::STATE_CORRECT;
-            $delete_history = TRUE;
+            $delete_history = true;
         }else {
             if ($game_state['stage_number']<max($suggest_timings)) {
                 $game_state['except_target_ids'][] = $game_state['targets'][0]['target_id'];
                 $state = Mifuminator::STATE_WRONG;
-                $delete_history = FALSE;
+                $delete_history = false;
             }else {
                 return $this->selectTarget($game_state);
             }
@@ -87,7 +87,7 @@ class Game {
 
         $game_state['targets'] = $this->getLogic()->guessTarget($game_state['question_answer_history'], 100, 10, $game_state['except_target_ids'], $cutoff_difference, $score);
         $game_state['best_target_ids'] = $this->getLogic()->getBestTargetIDs($game_state['targets'], 100, 0, $cutoff_difference);
-        $game_state['question'] = $this->getLogic()->nextQuestion($game_state['question_answer_history'], $game_state['best_target_ids'], NULL, $avoid_same_answer_number, $try_unknown_question_rate);
+        $game_state['question'] = $this->getLogic()->nextQuestion($game_state['question_answer_history'], $game_state['best_target_ids'], null, $avoid_same_answer_number, $try_unknown_question_rate);
         $game_state['stage_number']++;
 
         return $this->nextGameState($game_state, Mifuminator::STATE_ASK);
@@ -121,14 +121,14 @@ class Game {
 
     public function getGameOption($game_state, $key)
     {
-        return $game_state['option'][$key]!==NULL?$game_state['option'][$key]:$this->getOption()->$key;
+        return $game_state['option'][$key]!==null?$game_state['option'][$key]:$this->getOption()->$key;
     }
 
     public function getGameState($user_id, $stage_id)
     {
         $statement = $this->getDB()->exec('SELECT data FROM game_state WHERE user_id = :user_id AND stage_id = :stage_id;', ['user_id'=>$user_id,'stage_id'=>$stage_id]);
         $data = $statement->fetchColumn();
-        return $data?unserialize($data):NULL;
+        return $data?unserialize($data):null;
     }
 
     public function getLogic()
@@ -150,13 +150,13 @@ class Game {
         $game_id = $game_state['game_id'];
         foreach ($answers as $target_id => $answer) {
             if (in_array($answer, array_keys($score))) {
-                $this->getDA()->writeLog($user_id, $game_id, $target_id, [$question_id => $answer], NULL, TRUE);
+                $this->getDA()->writeLog($user_id, $game_id, $target_id, [$question_id => $answer], null, true);
             }
         }
-        return $this->nextGameState($game_state, $game_state['result_state'], [], TRUE);
+        return $this->nextGameState($game_state, $game_state['result_state'], [], true);
     }
 
-    public function learningStage($game_state, $question_id, $delete_history=FALSE)
+    public function learningStage($game_state, $question_id, $delete_history=false)
     {
         $learn_target_max = $this->getGameOption($game_state, 'learn_target_max');
         $learn_target_unknown = $this->getGameOption($game_state, 'learn_target_unknown');
@@ -262,10 +262,10 @@ class Game {
         ], $delete_history);
     }
 
-    public function nextGameState($game_state, $state=NULL, $allowed_method=[], $delete_history=FALSE)
+    public function nextGameState($game_state, $state=null, $allowed_method=[], $delete_history=false)
     {
         if ($state) $game_state['state'] = $state;
-        $game_state['previous_stage_id'] = $delete_history ? NULL : $game_state['stage_id'];
+        $game_state['previous_stage_id'] = $delete_history ? null : $game_state['stage_id'];
         $game_state['stage_id'] = $this->generateStageID($game_state['user_id'], $game_state['game_id']);
         $game_state['allowed_method'] = $allowed_method;
         $this->getDB()->begin();
@@ -283,7 +283,7 @@ class Game {
         $question_id = $ret->fetchColumn();
         $this->getDB()->commit();
 
-        return $this->learningStage($game_state, $question_id, TRUE);
+        return $this->learningStage($game_state, $question_id, true);
     }
 
     public function newTarget($game_state, $target)
@@ -296,9 +296,9 @@ class Game {
         $this->getDB()->commit();
 
         $target_id = $game_state['targets'][0]['target_id'];
-        $this->getDA()->writeLog($game_state['user_id'], $game_state['game_id'], $target_id, $game_state['question_answer_history'], NULL, TRUE);
+        $this->getDA()->writeLog($game_state['user_id'], $game_state['game_id'], $target_id, $game_state['question_answer_history'], null, true);
 
-        return $this->nextGameState($game_state, $game_state['result_state'] = Mifuminator::STATE_YOUWIN, [], TRUE);
+        return $this->nextGameState($game_state, $game_state['result_state'] = Mifuminator::STATE_YOUWIN, [], true);
     }
 
     public function searchQuestion($game_state, $search)
@@ -392,7 +392,7 @@ class Game {
         $game_state['game_id'] = $game_id;
         $game_state['targets'] = $this->getLogic()->guessTarget([], 100, 100, [], 0, []);
         $game_state['best_target_ids'] = $this->getLogic()->getBestTargetIDs($game_state['targets'], 100, 100, 0);
-        $game_state['question'] = $this->getLogic()->nextQuestion([], $game_state['best_target_ids'], NULL, $avoid_same_answer_number, $try_unknown_question_rate);
+        $game_state['question'] = $this->getLogic()->nextQuestion([], $game_state['best_target_ids'], null, $avoid_same_answer_number, $try_unknown_question_rate);
         $game_state['stage_number'] = 1;
         $game_state['question_answer_history'] = [];
         $game_state['except_targets'] = [];
@@ -416,7 +416,7 @@ class Game {
             WHERE target_id = :target_id
         ', $params);
         $game_state['final_target'] = $ret[0];
-        $this->getDA()->writeLog($game_state['user_id'], $game_state['game_id'], $game_state['final_target']['target_id'], $game_state['question_answer_history'], NULL, TRUE);
-        return $this->nextGameState($game_state, $game_state['result_state'] = Mifuminator::STATE_YOUWIN, [], TRUE);
+        $this->getDA()->writeLog($game_state['user_id'], $game_state['game_id'], $game_state['final_target']['target_id'], $game_state['question_answer_history'], null, true);
+        return $this->nextGameState($game_state, $game_state['result_state'] = Mifuminator::STATE_YOUWIN, [], true);
     }
 }
