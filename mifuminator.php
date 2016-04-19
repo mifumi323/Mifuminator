@@ -124,5 +124,4 @@ class Mifuminator {
         }
         return $this->option;
     }
-
 }
