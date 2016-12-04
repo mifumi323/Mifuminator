@@ -298,7 +298,8 @@ class Game {
         $target_id = $game_state['targets'][0]['target_id'];
         $this->getDA()->writeLog($game_state['user_id'], $game_state['game_id'], $target_id, $game_state['question_answer_history'], null, true);
 
-        return $this->nextGameState($game_state, $game_state['result_state'] = Mifuminator::STATE_YOUWIN, [], true);
+        $game_state['result_state'] = Mifuminator::STATE_YOUWIN;
+        return $this->nextGameState($game_state, $game_state['result_state'], [], true);
     }
 
     public function searchQuestion($game_state, $search)
@@ -417,6 +418,7 @@ class Game {
         ', $params);
         $game_state['final_target'] = $ret[0];
         $this->getDA()->writeLog($game_state['user_id'], $game_state['game_id'], $game_state['final_target']['target_id'], $game_state['question_answer_history'], null, true);
-        return $this->nextGameState($game_state, $game_state['result_state'] = Mifuminator::STATE_YOUWIN, [], true);
+        $game_state['result_state'] = Mifuminator::STATE_YOUWIN;
+        return $this->nextGameState($game_state, Mifuminator::STATE_YOUWIN, [], true);
     }
 }
