@@ -344,7 +344,16 @@ class Game {
             FROM target
             WHERE deleted = 0
             AND equal_to IS NULL
-            AND content LIKE :content
+            AND (
+                content LIKE :content
+                OR EXISTS (
+                    SELECT 1
+                    FROM target subtarget
+                    WHERE subtarget.deleted = 0
+                    AND subtarget.equal_to = target.target_id
+                    AND subtarget.content LIKE :content
+                )
+            )
             ORDER BY content
             LIMIT 10
         ');
