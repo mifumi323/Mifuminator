@@ -38,7 +38,7 @@ class Logic {
         return $this->option;
     }
 
-    public function getQuestionScoreSqlDivideHalf($question_answer_history, $temp_targets)
+    public function getQuestionScoreSqlDivideHalf($temp_targets)
     {
         $score_sql = '
             (
@@ -56,7 +56,7 @@ class Logic {
         return $score_sql;
     }
 
-    public function getQuestionScoreSqlDivideTop2($question_answer_history, $temp_targets)
+    public function getQuestionScoreSqlDivideTop2($temp_targets)
     {
         if (count($temp_targets)>1) {
             $score_sql = '
@@ -99,7 +99,7 @@ class Logic {
         return $score_sql;
     }
 
-    public function getQuestionScoreSqlManyNo($question_answer_history, $temp_targets)
+    public function getQuestionScoreSqlManyNo($temp_targets)
     {
         $score_sql = '
             (
@@ -113,7 +113,7 @@ class Logic {
         return $score_sql;
     }
 
-    public function getQuestionScoreSqlManyYes($question_answer_history, $temp_targets)
+    public function getQuestionScoreSqlManyYes($temp_targets)
     {
         $score_sql = '
             (
@@ -127,7 +127,7 @@ class Logic {
         return $score_sql;
     }
 
-    public function getQuestionScoreSqlUnknown($question_answer_history, $temp_targets)
+    public function getQuestionScoreSqlUnknown($temp_targets)
     {
         if (count($temp_targets)>0) {
             $target_count = 'COALESCE(SUM(CASE WHEN target_id IN ('.implode(',', $temp_targets).') THEN -(SELECT COUNT(question_id) FROM question) ELSE 0 END), 0)';
@@ -143,7 +143,7 @@ class Logic {
         ';
     }
 
-    public function getQuestionScoreSqlWellKnown($question_answer_history, $temp_targets)
+    public function getQuestionScoreSqlWellKnown($temp_targets)
     {
         $score_sql = '
             (
@@ -221,100 +221,102 @@ class Logic {
         return $result;
     }
 
-    public function nextQuestion($question_answer_history, $temp_targets, $function, $avoid_same_answer_number, $try_unknown_question_rate)
+    public function selectNextQuestion($question_answer_history=[], $temp_targets=[], $avoid_same_answer_number=0, $try_unknown_question_rate=0)
     {
-        if ($function) {
-            $except_sql = '';
-            if (count($question_answer_history)>0) {
-                $except_sql = 'AND question_id NOT IN ('.implode(',',array_keys($question_answer_history)).')';
-            }
-            $question_additional_column = $this->getOption()->question_additional_column;
-            if (strlen($question_additional_column)>0) $question_additional_column = ','.$question_additional_column;
-            $score_sql = $this->$function($question_answer_history, $temp_targets);
-            $ret = $this->getDB()->query('
-                SELECT
-                    question_id,
-                    content,
-                    '.$score_sql.' score
-                    '.$question_additional_column.'
-                FROM question
-                WHERE deleted = 0
-                AND equal_to IS NULL
-                '.$except_sql.'
-                ORDER BY score DESC, RANDOM()
-                LIMIT 1;
-            ');
-            $question = $ret[0];
-            $question['function'] = $function;
-            $question['score_sql'] = $score_sql;
-            return $question;
-        }else {
-            // ワンパターン回避
-            if ($avoid_same_answer_number>0 && count($question_answer_history)>=$avoid_same_answer_number) {
-                $yes = true;
-                $no = true;
-                $dontknow = true;
-                $answers = array_values($question_answer_history);
-                for ($i=1; $i<=$avoid_same_answer_number; $i++) {
-                    switch ($answers[count($answers)-$i]) {
-                        case Mifuminator::ANSWER_YES:
-                        case Mifuminator::ANSWER_PROBABLY:
-                            $no = false;
-                            $dontknow = false;
-                            break;
-                        case Mifuminator::ANSWER_NO:
-                        case Mifuminator::ANSWER_PROBABLY_NOT:
-                            $yes = false;
-                            $dontknow = false;
-                            break;
-                        case Mifuminator::ANSWER_DONT_KNOW:
-                            $yes = false;
-                            $no = false;
-                            break;
-                        default:
-                            $yes = false;
-                            $no = false;
-                            $dontknow = false;
-                            break;
-                    }
-                }
-                if ($yes) {
-                    $question = $this->nextQuestion($question_answer_history, $temp_targets, 'getQuestionScoreSqlManyNo', $avoid_same_answer_number, $try_unknown_question_rate);
-                }else if ($no) {
-                    $question = $this->nextQuestion($question_answer_history, $temp_targets, 'getQuestionScoreSqlManyYes', $avoid_same_answer_number, $try_unknown_question_rate);
-                }else if ($dontknow) {
-                    $question = $this->nextQuestion($question_answer_history, $temp_targets, 'getQuestionScoreSqlWellKnown', $avoid_same_answer_number, $try_unknown_question_rate);
-                }else {
-                    $question = ['score' => 0];
-                }
-                if ($question['score']!=0) {
-                    return $question;
+        // ワンパターン回避
+        if ($avoid_same_answer_number>0 && count($question_answer_history)>=$avoid_same_answer_number) {
+            $yes = true;
+            $no = true;
+            $dontknow = true;
+            $answers = array_values($question_answer_history);
+            for ($i=1; $i<=$avoid_same_answer_number; $i++) {
+                switch ($answers[count($answers)-$i]) {
+                    case Mifuminator::ANSWER_YES:
+                    case Mifuminator::ANSWER_PROBABLY:
+                        $no = false;
+                        $dontknow = false;
+                        break;
+                    case Mifuminator::ANSWER_NO:
+                    case Mifuminator::ANSWER_PROBABLY_NOT:
+                        $yes = false;
+                        $dontknow = false;
+                        break;
+                    case Mifuminator::ANSWER_DONT_KNOW:
+                        $yes = false;
+                        $no = false;
+                        break;
+                    default:
+                        $yes = false;
+                        $no = false;
+                        $dontknow = false;
+                        break;
                 }
             }
-
-            // ランダムで未知の質問を出す
-            if (mt_rand(0, 99)<$try_unknown_question_rate) {
-                return $this->nextQuestion($question_answer_history, $temp_targets, 'getQuestionScoreSqlUnknown', $avoid_same_answer_number, $try_unknown_question_rate);
+            if ($yes) {
+                $question = $this->selectNextQuestionWithScoreFunction($question_answer_history, $temp_targets, 'getQuestionScoreSqlManyNo');
+            }else if ($no) {
+                $question = $this->selectNextQuestionWithScoreFunction($question_answer_history, $temp_targets, 'getQuestionScoreSqlManyYes');
+            }else if ($dontknow) {
+                $question = $this->selectNextQuestionWithScoreFunction($question_answer_history, $temp_targets, 'getQuestionScoreSqlWellKnown');
+            }else {
+                $question = ['score' => 0];
             }
-
-            // 判断に有利な質問を選ぶ
-            if (count($temp_targets)==2) {
-                $question = $this->nextQuestion($question_answer_history, $temp_targets, 'getQuestionScoreSqlDivideTop2', $avoid_same_answer_number, $try_unknown_question_rate);
-                if ($question['score']!=0) {
-                    return $question;
-                }
-            }
-            $question = $this->nextQuestion($question_answer_history, $temp_targets, 'getQuestionScoreSqlDivideHalf', $avoid_same_answer_number, $try_unknown_question_rate);
             if ($question['score']!=0) {
                 return $question;
             }
-            $question = $this->nextQuestion($question_answer_history, $temp_targets, 'getQuestionScoreSqlDivideTop2', $avoid_same_answer_number, $try_unknown_question_rate);
-            if ($question['score']!=0) {
-                return $question;
-            }
-
-            // どうしようもないので次回にご期待ください
-            return $this->nextQuestion($question_answer_history, $temp_targets, 'getQuestionScoreSqlUnknown', $avoid_same_answer_number, $try_unknown_question_rate);
         }
+
+        // ランダムで未知の質問を出す
+        if (mt_rand(0, 99)<$try_unknown_question_rate) {
+            return $this->selectNextQuestionWithScoreFunction($question_answer_history, $temp_targets, 'getQuestionScoreSqlUnknown');
+        }
+
+        // 判断に有利な質問を選ぶ
+        if (count($temp_targets)==2) {
+            $question = $this->selectNextQuestionWithScoreFunction($question_answer_history, $temp_targets, 'getQuestionScoreSqlDivideTop2');
+            if ($question['score']!=0) {
+                return $question;
+            }
+        }
+        $question = $this->selectNextQuestionWithScoreFunction($question_answer_history, $temp_targets, 'getQuestionScoreSqlDivideHalf');
+        if ($question['score']!=0) {
+            return $question;
+        }
+        $question = $this->selectNextQuestionWithScoreFunction($question_answer_history, $temp_targets, 'getQuestionScoreSqlDivideTop2');
+        if ($question['score']!=0) {
+            return $question;
+        }
+
+        // どうしようもないので次回にご期待ください
+        return $this->selectNextQuestionWithScoreFunction($question_answer_history, $temp_targets, 'getQuestionScoreSqlUnknown');
+    }
+
+    public function selectNextQuestionWithScoreFunction($question_answer_history, $temp_targets, $score_function)
+    {
+        $function = [$this, $score_function];
+        $except_sql = '';
+        if (count($question_answer_history)>0) {
+            $except_sql = 'AND question_id NOT IN ('.implode(',',array_keys($question_answer_history)).')';
+        }
+        $question_additional_column = $this->getOption()->question_additional_column;
+        if (strlen($question_additional_column)>0) $question_additional_column = ','.$question_additional_column;
+        $score_sql = $function($temp_targets);
+        $ret = $this->getDB()->query('
+            SELECT
+                question_id,
+                content,
+                '.$score_sql.' score
+                '.$question_additional_column.'
+            FROM question
+            WHERE deleted = 0
+            AND equal_to IS NULL
+            '.$except_sql.'
+            ORDER BY score DESC, RANDOM()
+            LIMIT 1;
+        ');
+        $question = $ret[0];
+        $question['function'] = $score_function;
+        $question['score_sql'] = $score_sql;
+        return $question;
     }
 }

@@ -41,12 +41,12 @@ class Game {
                 $game_state['state'] = Mifuminator::STATE_SUGGEST;
             }else {
                 $game_state['asked_unknown_question'] = true;
-                $game_state['question'] = $this->getLogic()->nextQuestion($game_state['question_answer_history'], $game_state['best_target_ids'], 'getQuestionScoreSqlUnknown', $avoid_same_answer_number, $try_unknown_question_rate);
+                $game_state['question'] = $this->getLogic()->selectNextQuestionWithScoreFunction($game_state['question_answer_history'], $game_state['best_target_ids'], 'getQuestionScoreSqlUnknown');
                 $game_state['stage_number']++;
                 $game_state['state'] = Mifuminator::STATE_ASK;
             }
         }else {
-            $game_state['question'] = $this->getLogic()->nextQuestion($game_state['question_answer_history'], $game_state['best_target_ids'], null, $avoid_same_answer_number, $try_unknown_question_rate);
+            $game_state['question'] = $this->getLogic()->selectNextQuestion($game_state['question_answer_history'], $game_state['best_target_ids'], $avoid_same_answer_number, $try_unknown_question_rate);
             if ($game_state['question']['function']=='getQuestionScoreSqlUnknown') {
                 $game_state['asked_unknown_question'] = true;
             }
@@ -87,7 +87,7 @@ class Game {
 
         $game_state['targets'] = $this->getLogic()->guessTarget($game_state['question_answer_history'], 100, 10, $game_state['except_target_ids'], $cutoff_difference, $score);
         $game_state['best_target_ids'] = $this->getLogic()->getBestTargetIDs($game_state['targets'], 100, 0, $cutoff_difference);
-        $game_state['question'] = $this->getLogic()->nextQuestion($game_state['question_answer_history'], $game_state['best_target_ids'], null, $avoid_same_answer_number, $try_unknown_question_rate);
+        $game_state['question'] = $this->getLogic()->selectNextQuestion($game_state['question_answer_history'], $game_state['best_target_ids'], $avoid_same_answer_number, $try_unknown_question_rate);
         $game_state['stage_number']++;
 
         return $this->nextGameState($game_state, Mifuminator::STATE_ASK);
@@ -402,7 +402,7 @@ class Game {
         $game_state['game_id'] = $game_id;
         $game_state['targets'] = $this->getLogic()->guessTarget([], 100, 100, [], 0, []);
         $game_state['best_target_ids'] = $this->getLogic()->getBestTargetIDs($game_state['targets'], 100, 100, 0);
-        $game_state['question'] = $this->getLogic()->nextQuestion([], $game_state['best_target_ids'], null, $avoid_same_answer_number, $try_unknown_question_rate);
+        $game_state['question'] = $this->getLogic()->selectNextQuestion([], $game_state['best_target_ids'], $avoid_same_answer_number, $try_unknown_question_rate);
         $game_state['stage_number'] = 1;
         $game_state['question_answer_history'] = [];
         $game_state['except_targets'] = [];
