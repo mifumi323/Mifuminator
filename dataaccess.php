@@ -47,6 +47,22 @@ class DataAccess {
         $this->db->insert('score', ['question_id' => $question_id, 'target_id' => $target_id, 'score' => $score], [], $replace, false);
     }
 
+    public function setUserStatistics($user_id, $answer_count, $correlation)
+    {
+        $values = [
+            ':user_id' => $user_id,
+            ':answer_count' => $answer_count,
+            ':correlation' => $correlation,
+        ];
+        $sql = '
+            INSERT OR REPLACE
+            INTO user_statistics
+            (user_id, answer_count, correlation, update_date)
+            VALUES (:user_id, :answer_count, :correlation, CURRENT_TIMESTAMP)
+        ';
+        $this->db->exec($sql, $values);
+    }
+
     public function writeLog($user_id, $game_id, $target_id, $question_answer_list, $time=null, $insertToDB=false)
     {
         if ($time===null) $time = time();

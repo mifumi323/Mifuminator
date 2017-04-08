@@ -16,6 +16,7 @@ class Installer {
         $this->installScoreTable();
         $this->installGameStateTable();
         $this->installUserBlackListTable();
+        $this->installUserStatisticsTable();
     }
 
     public function installTargetTable()
@@ -99,6 +100,19 @@ class Installer {
         $this->db->exec('
             CREATE TABLE user_black_list(
                 user_id TEXT PRIMARY KEY,
+                create_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+        ');
+    }
+
+    public function installUserStatisticsTable()
+    {
+        $this->db->exec('
+            CREATE TABLE user_statistics(
+                user_id TEXT PRIMARY KEY,
+                answer_count INTEGER NOT NULL,
+                correlation INTEGER NOT NULL,
+                update_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 create_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
         ');

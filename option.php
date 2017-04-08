@@ -46,4 +46,10 @@ class Option {
 
     // 対象の追加項目(コンマ区切りのSQL文。SELECT文に直接挿入されます)
     public $target_additional_column = null;
+
+    // 相関係数の倍率
+    public $correlation_scale = 100;
+
+    // 有効なユーザーの相関係数の下限
+    public $correlation_threshold = 10;
 }
