@@ -9,5 +9,10 @@
             "email": "mifumi323@gmail.com"
         }
     ],
+    "autoload": {
+        "psr-4": {
+            "MifuminLib\\Mifuminator\\": "src/"
+        }
+    }
     "require": {}
 }
