@@ -1,0 +1,12 @@
+{
+    "name": "mifumi323/mifuminator",
+    "description": "ai?",
+    "type": "library",
+    "authors": [
+        {
+            "name": "mifumi323",
+            "email": "mifumi323@gmail.com"
+        }
+    ],
+    "require": {}
+}
