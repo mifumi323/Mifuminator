@@ -1,7 +1,8 @@
 <?php
 namespace MifuminLib\Mifuminator;
 
-class Logic {
+class Logic
+{
     private $db;
     private $option;
 
@@ -17,12 +18,20 @@ class Logic {
         $result = [];
         foreach ($targets as $target) {
             if ($i >= $min) {
-                if ($target['score'] <= 0) break;
-                if ($target['score'] <= $highscore - $cutoff_difference) break;
-                if ($i>=$max) break;
+                if ($target['score'] <= 0) {
+                    break;
+                }
+                if ($target['score'] <= $highscore - $cutoff_difference) {
+                    break;
+                }
+                if ($i>=$max) {
+                    break;
+                }
             }
             $result[] = $target['target_id'];
-            if ($i==0) $highscore = $target['score'];
+            if ($i==0) {
+                $highscore = $target['score'];
+            }
             $i++;
         }
         return $result;
@@ -93,7 +102,7 @@ class Logic {
                     ) pp
                 ))
             ';
-        }else {
+        } else {
             $score_sql = '0';
         }
         return $score_sql;
@@ -131,7 +140,7 @@ class Logic {
     {
         if (count($temp_targets)>0) {
             $target_count = 'COALESCE(SUM(CASE WHEN target_id IN ('.implode(',', $temp_targets).') THEN -(SELECT COUNT(question_id) FROM question) ELSE 0 END), 0)';
-        }else {
+        } else {
             $target_count = '';
         }
         return '
@@ -163,9 +172,13 @@ class Logic {
         $qcsv = '';
         foreach ($question_answer_history as $question_id => $answer) {
             $qscore = $score[$answer];
-            if ($qscore==0) continue;
+            if ($qscore==0) {
+                continue;
+            }
             $whenthen .= "\nWHEN $question_id THEN $qscore";
-            if (strlen($qcsv)>0) $qcsv .= ',';
+            if (strlen($qcsv)>0) {
+                $qcsv .= ',';
+            }
             $qcsv .= $question_id;
         }
         if (strlen($qcsv)==0) {
@@ -189,10 +202,12 @@ class Logic {
     {
         $except_target_sql = '';
         if (count($except_target_ids)>0) {
-            $except_target_sql = 'AND target_id NOT IN ('.implode(',',$except_target_ids).')';
+            $except_target_sql = 'AND target_id NOT IN ('.implode(',', $except_target_ids).')';
         }
         $target_additional_column = $this->getOption()->target_additional_column;
-        if (strlen($target_additional_column)>0) $target_additional_column = ','.$target_additional_column;
+        if (strlen($target_additional_column)>0) {
+            $target_additional_column = ','.$target_additional_column;
+        }
         $ret = $this->getDB()->query('
             SELECT
                 target_id,
@@ -211,11 +226,17 @@ class Logic {
         $highscore = 0;
         foreach ($ret as $row) {
             if ($i >= $min) {
-                if ($row['score'] <= 0) break;
-                if ($row['score'] <= $highscore - $cutoff_difference) break;
+                if ($row['score'] <= 0) {
+                    break;
+                }
+                if ($row['score'] <= $highscore - $cutoff_difference) {
+                    break;
+                }
             }
             $result[] = $row;
-            if ($i==0) $highscore = $row['score'];
+            if ($i==0) {
+                $highscore = $row['score'];
+            }
             $i++;
         }
         return $result;
@@ -254,11 +275,11 @@ class Logic {
             }
             if ($yes) {
                 $question = $this->selectNextQuestionWithScoreFunction($question_answer_history, $temp_targets, 'getQuestionScoreSqlManyNo');
-            }else if ($no) {
+            } elseif ($no) {
                 $question = $this->selectNextQuestionWithScoreFunction($question_answer_history, $temp_targets, 'getQuestionScoreSqlManyYes');
-            }else if ($dontknow) {
+            } elseif ($dontknow) {
                 $question = $this->selectNextQuestionWithScoreFunction($question_answer_history, $temp_targets, 'getQuestionScoreSqlWellKnown');
-            }else {
+            } else {
                 $question = ['score' => 0];
             }
             if ($question['score']!=0) {
@@ -296,10 +317,12 @@ class Logic {
         $function = [$this, $score_function];
         $except_sql = '';
         if (count($question_answer_history)>0) {
-            $except_sql = 'AND question_id NOT IN ('.implode(',',array_keys($question_answer_history)).')';
+            $except_sql = 'AND question_id NOT IN ('.implode(',', array_keys($question_answer_history)).')';
         }
         $question_additional_column = $this->getOption()->question_additional_column;
-        if (strlen($question_additional_column)>0) $question_additional_column = ','.$question_additional_column;
+        if (strlen($question_additional_column)>0) {
+            $question_additional_column = ','.$question_additional_column;
+        }
         $score_sql = $function($temp_targets);
         $ret = $this->getDB()->query('
             SELECT

@@ -1,7 +1,8 @@
 <?php
 namespace MifuminLib\Mifuminator;
 
-class Option {
+class Option
+{
     // ログファイルのありか
     public $log_dir;
 

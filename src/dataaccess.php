@@ -1,7 +1,8 @@
 <?php
 namespace MifuminLib\Mifuminator;
 
-class DataAccess {
+class DataAccess
+{
     private $db;
     private $option;
 
@@ -28,7 +29,9 @@ class DataAccess {
 
     public function getLogFileName($time=null)
     {
-        if ($time===null) $time = time();
+        if ($time===null) {
+            $time = time();
+        }
         return $this->getLogFileNameByName(date('Ymd', $time));
     }
 
@@ -65,14 +68,22 @@ class DataAccess {
 
     public function writeLog($user_id, $game_id, $target_id, $question_answer_list, $time=null, $insertToDB=false)
     {
-        if ($time===null) $time = time();
+        if ($time===null) {
+            $time = time();
+        }
         $line = date('c', time()).','.$user_id.','.$game_id.','.$target_id;
-        if ($insertToDB) $this->db->begin();
+        if ($insertToDB) {
+            $this->db->begin();
+        }
         foreach ($question_answer_list as $question_id => $answer) {
             $line .= ','.$question_id.'='.$answer;
-            if ($insertToDB) $this->setScore($question_id, $target_id, (int)(0.5 * $this->option->score[$answer] * $this->option->score_max / $this->option->score[Mifuminator::ANSWER_YES]), false);
+            if ($insertToDB) {
+                $this->setScore($question_id, $target_id, (int)(0.5 * $this->option->score[$answer] * $this->option->score_max / $this->option->score[Mifuminator::ANSWER_YES]), false);
+            }
         }
-        if ($insertToDB) $this->db->commit();
+        if ($insertToDB) {
+            $this->db->commit();
+        }
         file_put_contents($this->getLogFileName($time), $line."\n", FILE_APPEND);
     }
 }

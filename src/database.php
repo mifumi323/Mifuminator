@@ -1,7 +1,8 @@
 <?php
 namespace MifuminLib\Mifuminator;
 
-class Database {
+class Database
+{
     private $db_file_path;
     private $db;
 
@@ -53,7 +54,7 @@ class Database {
         $statement = $this->prepare($sql);
         if ($statement===false) {
             return false;
-        }else {
+        } else {
             $statement->execute($values);
             return true;
         }
@@ -71,7 +72,7 @@ class Database {
         $statement = $this->exec($sql, $params);
         if ($statement===false) {
             return false;
-        }else {
+        } else {
             return $statement->fetchAll(\PDO::FETCH_ASSOC);
         }
     }

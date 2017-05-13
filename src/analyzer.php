@@ -1,7 +1,8 @@
 <?php
 namespace MifuminLib\Mifuminator;
 
-class Analyzer {
+class Analyzer
+{
     private $da;
     private $db;
     private $option;
@@ -16,7 +17,9 @@ class Analyzer {
     public function analyze($full=false)
     {
         $this->db->begin();
-        if ($full) $this->db->exec('DELETE FROM score;');
+        if ($full) {
+            $this->db->exec('DELETE FROM score;');
+        }
 
         // 読み替えデータ
         $question_alias = [];
@@ -37,7 +40,7 @@ class Analyzer {
         // 解析開始
         if (!$full) {
             $this->analyzeData($file_list, $question_alias, $target_alias, true, true, true);
-        }else {
+        } else {
             $this->analyzeData($file_list, $question_alias, $target_alias, false, true, false);
             $this->analyzeData($file_list, $question_alias, $target_alias, true, false, true);
         }
@@ -67,20 +70,26 @@ class Analyzer {
                 FROM user_statistics
                 WHERE correlation < '.$this->option->correlation_threshold.'
             ');
-            $user_black_list = array_map(function($row) { return $row['user_id']; }, $ret);
-        }else {
+            $user_black_list = array_map(function ($row) {
+                return $row['user_id'];
+            }, $ret);
+        } else {
             $ret = $this->db->query('
                 SELECT user_id
                 FROM user_black_list
             ');
-            $user_black_list = array_map(function($row) { return $row['user_id']; }, $ret);
+            $user_black_list = array_map(function ($row) {
+                return $row['user_id'];
+            }, $ret);
         }
 
         // ファイルごとに解析
         $count = [];
         $total_score = [];
         foreach ($file_list as $file) {
-            if (basename($file)==$this->da->getLogFileName()) continue;
+            if (basename($file)==$this->da->getLogFileName()) {
+                continue;
+            }
             $this->analyzeFile($file, $count, $total_score, $question_alias, $target_alias, $user_black_list);
         }
 
@@ -162,18 +171,30 @@ class Analyzer {
     {
         $handle = fopen($file, 'r');
         while (($array = fgetcsv($handle)) !== false) {
-            if (count($array)<5) break;
+            if (count($array)<5) {
+                break;
+            }
             $timestamp = $array[0];
             $user_id = $array[1];
             $game_id = $array[2];
             $target_id = $array[3];
-            if (in_array($user_id, $user_black_list)) continue;
-            if (isset($target_alias[$target_id])) $target_id = $target_alias[$target_id];
-            if ($target_id<=0) continue;
+            if (in_array($user_id, $user_black_list)) {
+                continue;
+            }
+            if (isset($target_alias[$target_id])) {
+                $target_id = $target_alias[$target_id];
+            }
+            if ($target_id<=0) {
+                continue;
+            }
             for ($i=4; $i<count($array); $i++) {
                 list($question_id, $answer) = explode('=', $array[$i]);
-                if (isset($question_alias[$question_id])) $question_id = $question_alias[$question_id];
-                if ($question_id<=0) continue;
+                if (isset($question_alias[$question_id])) {
+                    $question_id = $question_alias[$question_id];
+                }
+                if ($question_id<=0) {
+                    continue;
+                }
                 $count[$target_id][$question_id][$user_id]++;
                 $total_score[$target_id][$question_id][$user_id] += $this->option->score[trim($answer)];
             }

@@ -1,7 +1,8 @@
 <?php
 namespace MifuminLib\Mifuminator;
 
-class Installer {
+class Installer
+{
     private $db;
 
     public function __construct($db)
