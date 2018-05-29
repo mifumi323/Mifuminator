@@ -1,4 +1,5 @@
 <?php
+
 namespace MifuminLib\Mifuminator;
 
 class Database
@@ -27,12 +28,13 @@ class Database
     }
 
     // 実行
-    public function exec($sql, $params=[])
+    public function exec($sql, $params = [])
     {
         $statement = $this->prepare($sql);
-        if ($statement!==false) {
+        if ($statement !== false) {
             $statement->execute($params);
         }
+
         return $statement;
     }
 
@@ -43,34 +45,35 @@ class Database
     }
 
     // 挿入
-    public function insert($table, $params, $sqlparams=[], $tryReplace=false, $throwOnConflict=true)
+    public function insert($table, $params, $sqlparams = [], $tryReplace = false, $throwOnConflict = true)
     {
         $values = [];
         foreach ($params as $key => $value) {
             $values[':'.$key] = $value;
         }
-        $columns = array_keys($params)+array_keys($sqlparams);
-        $sql = 'INSERT'.($tryReplace?' OR REPLACE':($throwOnConflict?'':' OR IGNORE')).' INTO '.$table.' ('.implode(',', $columns).') VALUES ('.implode(',', array_keys($values)+array_values($sqlparams)).')';
+        $columns = array_keys($params) + array_keys($sqlparams);
+        $sql = 'INSERT'.($tryReplace ? ' OR REPLACE' : ($throwOnConflict ? '' : ' OR IGNORE')).' INTO '.$table.' ('.implode(',', $columns).') VALUES ('.implode(',', array_keys($values) + array_values($sqlparams)).')';
         $statement = $this->prepare($sql);
-        if ($statement===false) {
+        if ($statement === false) {
             return false;
         } else {
             $statement->execute($values);
+
             return true;
         }
     }
 
     // プリペアドステートメントの準備
-    public function prepare($statement, $driver_options=[])
+    public function prepare($statement, $driver_options = [])
     {
         return $this->db->prepare($statement, $driver_options);
     }
 
     // クエリの実行
-    public function query($sql, $params=[])
+    public function query($sql, $params = [])
     {
         $statement = $this->exec($sql, $params);
-        if ($statement===false) {
+        if ($statement === false) {
             return false;
         } else {
             return $statement->fetchAll(\PDO::FETCH_ASSOC);

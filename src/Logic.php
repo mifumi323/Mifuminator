@@ -1,4 +1,5 @@
 <?php
+
 namespace MifuminLib\Mifuminator;
 
 class Logic
@@ -24,16 +25,17 @@ class Logic
                 if ($target['score'] <= $highscore - $cutoff_difference) {
                     break;
                 }
-                if ($i>=$max) {
+                if ($i >= $max) {
                     break;
                 }
             }
             $result[] = $target['target_id'];
-            if ($i==0) {
+            if ($i == 0) {
                 $highscore = $target['score'];
             }
-            $i++;
+            ++$i;
         }
+
         return $result;
     }
 
@@ -59,15 +61,16 @@ class Logic
                     )
                 FROM score
                 WHERE score.question_id = question.question_id
-                '.(count($temp_targets)>1?'AND target_id IN ('.implode(',', $temp_targets).')':'').'
+                '.(count($temp_targets) > 1 ? 'AND target_id IN ('.implode(',', $temp_targets).')' : '').'
             )
         ';
+
         return $score_sql;
     }
 
     public function getQuestionScoreSqlDivideTop2($temp_targets)
     {
-        if (count($temp_targets)>1) {
+        if (count($temp_targets) > 1) {
             $score_sql = '
                 ABS((
                     SELECT
@@ -105,6 +108,7 @@ class Logic
         } else {
             $score_sql = '0';
         }
+
         return $score_sql;
     }
 
@@ -116,9 +120,10 @@ class Logic
                     SUM(CASE WHEN score < 0 THEN 1 ELSE 0 END)
                 FROM score
                 WHERE score.question_id = question.question_id
-                '.(count($temp_targets)>0?'AND target_id IN ('.implode(',', $temp_targets).')':'').'
+                '.(count($temp_targets) > 0 ? 'AND target_id IN ('.implode(',', $temp_targets).')' : '').'
             )
         ';
+
         return $score_sql;
     }
 
@@ -130,19 +135,21 @@ class Logic
                     SUM(CASE WHEN score > 0 THEN 1 ELSE 0 END)
                 FROM score
                 WHERE score.question_id = question.question_id
-                '.(count($temp_targets)>0?'AND target_id IN ('.implode(',', $temp_targets).')':'').'
+                '.(count($temp_targets) > 0 ? 'AND target_id IN ('.implode(',', $temp_targets).')' : '').'
             )
         ';
+
         return $score_sql;
     }
 
     public function getQuestionScoreSqlUnknown($temp_targets)
     {
-        if (count($temp_targets)>0) {
+        if (count($temp_targets) > 0) {
             $target_count = 'COALESCE(SUM(CASE WHEN target_id IN ('.implode(',', $temp_targets).') THEN -(SELECT COUNT(question_id) FROM question) ELSE 0 END), 0)';
         } else {
             $target_count = '';
         }
+
         return '
             (
                 SELECT '.$target_count.'-(CASE WHEN SUM(CASE WHEN score>0 THEN 1 ELSE 0 END)>0 AND SUM(CASE WHEN score<0 THEN 1 ELSE 0 END)>0 THEN COUNT(*) ELSE 0 END)
@@ -160,9 +167,10 @@ class Logic
                     SUM(CASE WHEN score <> 0 THEN 1 ELSE 0 END)
                 FROM score
                 WHERE score.question_id = question.question_id
-                '.(count($temp_targets)>0?'AND target_id IN ('.implode(',', $temp_targets).')':'').'
+                '.(count($temp_targets) > 0 ? 'AND target_id IN ('.implode(',', $temp_targets).')' : '').'
             )
         ';
+
         return $score_sql;
     }
 
@@ -172,18 +180,19 @@ class Logic
         $qcsv = '';
         foreach ($question_answer_history as $question_id => $answer) {
             $qscore = $score[$answer];
-            if ($qscore==0) {
+            if ($qscore == 0) {
                 continue;
             }
             $whenthen .= "\nWHEN $question_id THEN $qscore";
-            if (strlen($qcsv)>0) {
+            if (strlen($qcsv) > 0) {
                 $qcsv .= ',';
             }
             $qcsv .= $question_id;
         }
-        if (strlen($qcsv)==0) {
+        if (strlen($qcsv) == 0) {
             return '0';
         }
+
         return '
             COALESCE((
                 SELECT
@@ -201,11 +210,11 @@ class Logic
     public function guessTarget($question_answer_history, $max, $min, $except_target_ids, $cutoff_difference, $score)
     {
         $except_target_sql = '';
-        if (count($except_target_ids)>0) {
+        if (count($except_target_ids) > 0) {
             $except_target_sql = 'AND target_id NOT IN ('.implode(',', $except_target_ids).')';
         }
         $target_additional_column = $this->getOption()->target_additional_column;
-        if (strlen($target_additional_column)>0) {
+        if (strlen($target_additional_column) > 0) {
             $target_additional_column = ','.$target_additional_column;
         }
         $ret = $this->getDB()->query('
@@ -234,24 +243,25 @@ class Logic
                 }
             }
             $result[] = $row;
-            if ($i==0) {
+            if ($i == 0) {
                 $highscore = $row['score'];
             }
-            $i++;
+            ++$i;
         }
+
         return $result;
     }
 
-    public function selectNextQuestion($question_answer_history=[], $temp_targets=[], $avoid_same_answer_number=0, $try_unknown_question_rate=0)
+    public function selectNextQuestion($question_answer_history = [], $temp_targets = [], $avoid_same_answer_number = 0, $try_unknown_question_rate = 0)
     {
         // ワンパターン回避
-        if ($avoid_same_answer_number>0 && count($question_answer_history)>=$avoid_same_answer_number) {
+        if ($avoid_same_answer_number > 0 && count($question_answer_history) >= $avoid_same_answer_number) {
             $yes = true;
             $no = true;
             $dontknow = true;
             $answers = array_values($question_answer_history);
-            for ($i=1; $i<=$avoid_same_answer_number; $i++) {
-                switch ($answers[count($answers)-$i]) {
+            for ($i = 1; $i <= $avoid_same_answer_number; ++$i) {
+                switch ($answers[count($answers) - $i]) {
                     case Mifuminator::ANSWER_YES:
                     case Mifuminator::ANSWER_PROBABLY:
                         $no = false;
@@ -282,29 +292,29 @@ class Logic
             } else {
                 $question = ['score' => 0];
             }
-            if ($question['score']!=0) {
+            if ($question['score'] != 0) {
                 return $question;
             }
         }
 
         // ランダムで未知の質問を出す
-        if (mt_rand(0, 99)<$try_unknown_question_rate) {
+        if (mt_rand(0, 99) < $try_unknown_question_rate) {
             return $this->selectNextQuestionWithScoreFunction($question_answer_history, $temp_targets, 'getQuestionScoreSqlUnknown');
         }
 
         // 判断に有利な質問を選ぶ
-        if (count($temp_targets)==2) {
+        if (count($temp_targets) == 2) {
             $question = $this->selectNextQuestionWithScoreFunction($question_answer_history, $temp_targets, 'getQuestionScoreSqlDivideTop2');
-            if ($question['score']!=0) {
+            if ($question['score'] != 0) {
                 return $question;
             }
         }
         $question = $this->selectNextQuestionWithScoreFunction($question_answer_history, $temp_targets, 'getQuestionScoreSqlDivideHalf');
-        if ($question['score']!=0) {
+        if ($question['score'] != 0) {
             return $question;
         }
         $question = $this->selectNextQuestionWithScoreFunction($question_answer_history, $temp_targets, 'getQuestionScoreSqlDivideTop2');
-        if ($question['score']!=0) {
+        if ($question['score'] != 0) {
             return $question;
         }
 
@@ -316,11 +326,11 @@ class Logic
     {
         $function = [$this, $score_function];
         $except_sql = '';
-        if (count($question_answer_history)>0) {
+        if (count($question_answer_history) > 0) {
             $except_sql = 'AND question_id NOT IN ('.implode(',', array_keys($question_answer_history)).')';
         }
         $question_additional_column = $this->getOption()->question_additional_column;
-        if (strlen($question_additional_column)>0) {
+        if (strlen($question_additional_column) > 0) {
             $question_additional_column = ','.$question_additional_column;
         }
         $score_sql = $function($temp_targets);
@@ -340,6 +350,7 @@ class Logic
         $question = $ret[0];
         $question['function'] = $score_function;
         $question['score_sql'] = $score_sql;
+
         return $question;
     }
 }

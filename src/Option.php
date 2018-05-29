@@ -1,4 +1,5 @@
 <?php
+
 namespace MifuminLib\Mifuminator;
 
 class Option
@@ -8,10 +9,10 @@ class Option
 
     // 回答内容ごとのスコア
     public $score = [
-        Mifuminator::ANSWER_YES          => 10,
-        Mifuminator::ANSWER_NO           => -10,
-        Mifuminator::ANSWER_DONT_KNOW    => 0,
-        Mifuminator::ANSWER_PROBABLY     => 1,
+        Mifuminator::ANSWER_YES => 10,
+        Mifuminator::ANSWER_NO => -10,
+        Mifuminator::ANSWER_DONT_KNOW => 0,
+        Mifuminator::ANSWER_PROBABLY => 1,
         Mifuminator::ANSWER_PROBABLY_NOT => -1,
     ];
 

@@ -1,4 +1,5 @@
 <?php
+
 namespace MifuminLib\Mifuminator;
 
 class Mifuminator
@@ -75,6 +76,7 @@ class Mifuminator
         if (!isset($this->analyzer)) {
             $this->analyzer = $this->createAnalyzer();
         }
+
         return $this->analyzer;
     }
 
@@ -83,6 +85,7 @@ class Mifuminator
         if (!isset($this->da)) {
             $this->da = $this->createDA();
         }
+
         return $this->da;
     }
 
@@ -91,6 +94,7 @@ class Mifuminator
         if (!isset($this->db)) {
             $this->db = $this->createDB();
         }
+
         return $this->db;
     }
 
@@ -99,6 +103,7 @@ class Mifuminator
         if (!isset($this->installer)) {
             $this->installer = $this->createInstaller();
         }
+
         return $this->installer;
     }
 
@@ -107,6 +112,7 @@ class Mifuminator
         if (!isset($this->game)) {
             $this->game = $this->createGame();
         }
+
         return $this->game;
     }
 
@@ -115,6 +121,7 @@ class Mifuminator
         if (!isset($this->logic)) {
             $this->logic = $this->createLogic();
         }
+
         return $this->logic;
     }
 
@@ -123,6 +130,7 @@ class Mifuminator
         if (!isset($this->option)) {
             $this->option = $this->createOption();
         }
+
         return $this->option;
     }
 }

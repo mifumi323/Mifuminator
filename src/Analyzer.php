@@ -1,4 +1,5 @@
 <?php
+
 namespace MifuminLib\Mifuminator;
 
 class Analyzer
@@ -14,7 +15,7 @@ class Analyzer
         $this->option = $da->getOption();
     }
 
-    public function analyze($full=false)
+    public function analyze($full = false)
     {
         $this->db->begin();
         if ($full) {
@@ -87,7 +88,7 @@ class Analyzer
         $count = [];
         $total_score = [];
         foreach ($file_list as $file) {
-            if (basename($file)==$this->da->getLogFileName()) {
+            if (basename($file) == $this->da->getLogFileName()) {
                 continue;
             }
             $this->analyzeFile($file, $count, $total_score, $question_alias, $target_alias, $user_black_list);
@@ -115,8 +116,8 @@ class Analyzer
 
                 // ユーザー数補正を掛けて保存
                 if ($regist_score) {
-                    $population_power = 1/(1+exp(-$this->option->logistic_regression_param*($count_value-1)));
-                    $final_score = (int)($average_score * $population_power * $score_power);
+                    $population_power = 1 / (1 + exp(-$this->option->logistic_regression_param * ($count_value - 1)));
+                    $final_score = (int) ($average_score * $population_power * $score_power);
                     $this->da->setScore($question_id, $target_id, $final_score);
                 }
 
@@ -142,7 +143,7 @@ class Analyzer
                     foreach ($question_correlation as $question_id => $correlation) {
                         $own_sum += $correlation['own'];
                         $other_sum += $correlation['other'];
-                        $count++;
+                        ++$count;
                     }
                 }
                 $own_average = $own_sum / $count;
@@ -162,16 +163,16 @@ class Analyzer
                 $correlation_value = ($covariance != 0) ? ($covariance / sqrt($own_variance * $other_variance)) : 0;
 
                 // 保存
-                $this->da->setUserStatistics($user_id, $count, (int)($correlation_value*$this->option->correlation_scale));
+                $this->da->setUserStatistics($user_id, $count, (int) ($correlation_value * $this->option->correlation_scale));
             }
         }
     }
 
-    public function analyzeFile($file, &$count, &$total_score, $question_alias=[], $target_alias=[], $user_black_list=[])
+    public function analyzeFile($file, &$count, &$total_score, $question_alias = [], $target_alias = [], $user_black_list = [])
     {
         $handle = fopen($file, 'r');
         while (($array = fgetcsv($handle)) !== false) {
-            if (count($array)<5) {
+            if (count($array) < 5) {
                 break;
             }
             $timestamp = $array[0];
@@ -184,18 +185,18 @@ class Analyzer
             if (isset($target_alias[$target_id])) {
                 $target_id = $target_alias[$target_id];
             }
-            if ($target_id<=0) {
+            if ($target_id <= 0) {
                 continue;
             }
-            for ($i=4; $i<count($array); $i++) {
+            for ($i = 4; $i < count($array); ++$i) {
                 list($question_id, $answer) = explode('=', $array[$i]);
                 if (isset($question_alias[$question_id])) {
                     $question_id = $question_alias[$question_id];
                 }
-                if ($question_id<=0) {
+                if ($question_id <= 0) {
                     continue;
                 }
-                $count[$target_id][$question_id][$user_id]++;
+                ++$count[$target_id][$question_id][$user_id];
                 $total_score[$target_id][$question_id][$user_id] += $this->option->score[trim($answer)];
             }
         }

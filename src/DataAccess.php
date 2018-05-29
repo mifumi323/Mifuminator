@@ -1,4 +1,5 @@
 <?php
+
 namespace MifuminLib\Mifuminator;
 
 class DataAccess
@@ -27,11 +28,12 @@ class DataAccess
         return $this->db;
     }
 
-    public function getLogFileName($time=null)
+    public function getLogFileName($time = null)
     {
-        if ($time===null) {
+        if ($time === null) {
             $time = time();
         }
+
         return $this->getLogFileNameByName(date('Ymd', $time));
     }
 
@@ -45,7 +47,7 @@ class DataAccess
         return $this->option;
     }
 
-    public function setScore($question_id, $target_id, $score, $replace=true)
+    public function setScore($question_id, $target_id, $score, $replace = true)
     {
         $this->db->insert('score', ['question_id' => $question_id, 'target_id' => $target_id, 'score' => $score], [], $replace, false);
     }
@@ -66,9 +68,9 @@ class DataAccess
         $this->db->exec($sql, $values);
     }
 
-    public function writeLog($user_id, $game_id, $target_id, $question_answer_list, $time=null, $insertToDB=false)
+    public function writeLog($user_id, $game_id, $target_id, $question_answer_list, $time = null, $insertToDB = false)
     {
-        if ($time===null) {
+        if ($time === null) {
             $time = time();
         }
         $line = date('c', time()).','.$user_id.','.$game_id.','.$target_id;
@@ -78,7 +80,7 @@ class DataAccess
         foreach ($question_answer_list as $question_id => $answer) {
             $line .= ','.$question_id.'='.$answer;
             if ($insertToDB) {
-                $this->setScore($question_id, $target_id, (int)(0.5 * $this->option->score[$answer] * $this->option->score_max / $this->option->score[Mifuminator::ANSWER_YES]), false);
+                $this->setScore($question_id, $target_id, (int) (0.5 * $this->option->score[$answer] * $this->option->score_max / $this->option->score[Mifuminator::ANSWER_YES]), false);
             }
         }
         if ($insertToDB) {
