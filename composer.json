@@ -1,6 +1,7 @@
 {
     "name": "mifumi323/mifuminator",
     "description": "ai?",
+    "version": "1.0.0-alpha1",
     "type": "library",
     "license": "Apache-2.0",
     "authors": [
@@ -14,5 +15,7 @@
             "MifuminLib\\Mifuminator\\": "src/"
         }
     },
-    "require": {}
+    "require": {
+        "php": ">=7.2"
+    }
 }
