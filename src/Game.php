@@ -4,7 +4,7 @@ namespace MifuminLib\Mifuminator;
 
 class GameInvalidTargetException extends \Exception
 {
-    public function __construct($message = null, $code = 0, Exception $previous = null)
+    public function __construct($message = null, $code = 0, \Exception $previous = null)
     {
         parent::__construct($message, $code, $previous);
     }
@@ -35,11 +35,11 @@ class Game
         $score = $this->getGameOption($game_state, 'score');
 
         $game_state['question_answer_history'][$game_state['question']['question_id']] = $answer;
-        $game_state['targets'] = $this->getLogic()->guessTarget($game_state['question_answer_history'], 100, 10, $game_state['except_target_ids'], $cutoff_difference, $score);
+        $game_state['targets'] = $this->getLogic()->guessTarget($game_state['question_answer_history'], 100, 10, $game_state['except_target_ids'] ?? [], $cutoff_difference, $score);
         $game_state['best_target_ids'] = $this->getLogic()->getBestTargetIDs($game_state['targets'], 100, 0, $cutoff_difference);
 
-        if (count($game_state['best_target_ids']) == 1 || in_array($game_state['stage_number'], $suggest_timings)) {
-            if (!$use_final_learning || $game_state['asked_unknown_question'] || $game_state['stage_number'] >= $suggest_timings[0]) {
+        if (1 == count($game_state['best_target_ids']) || in_array($game_state['stage_number'], $suggest_timings)) {
+            if (!$use_final_learning || isset($game_state['asked_unknown_question']) || ($game_state['stage_number'] ?? 0) >= $suggest_timings[0]) {
                 $game_state['question'] = null;
                 $game_state['state'] = Mifuminator::STATE_SUGGEST;
             } else {
@@ -50,7 +50,7 @@ class Game
             }
         } else {
             $game_state['question'] = $this->getLogic()->selectNextQuestion($game_state['question_answer_history'], $game_state['best_target_ids'], $avoid_same_answer_number, $try_unknown_question_rate);
-            if ($game_state['question']['function'] == 'getQuestionScoreSqlUnknown') {
+            if ('getQuestionScoreSqlUnknown' == $game_state['question']['function']) {
                 $game_state['asked_unknown_question'] = true;
             }
             ++$game_state['stage_number'];
@@ -125,7 +125,7 @@ class Game
 
     public function getGameOption($game_state, $key)
     {
-        return $game_state['option'][$key] !== null ? $game_state['option'][$key] : $this->getOption()->$key;
+        return isset($game_state['option'][$key]) ? $game_state['option'][$key] : $this->getOption()->$key;
     }
 
     public function getGameState($user_id, $stage_id)
@@ -283,7 +283,7 @@ class Game
         if ($state) {
             $game_state['state'] = $state;
         }
-        $game_state['previous_stage_id'] = $delete_history ? null : $game_state['stage_id'];
+        $game_state['previous_stage_id'] = ($delete_history || !isset($game_state['stage_id'])) ? null : $game_state['stage_id'];
         $game_state['stage_id'] = $this->generateStageID($game_state['user_id'], $game_state['game_id']);
         $game_state['allowed_method'] = $allowed_method;
         $this->getDB()->begin();

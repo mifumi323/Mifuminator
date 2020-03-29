@@ -160,7 +160,7 @@ class Analyzer
                         $other_variance += ($correlation['other'] - $other_average) * ($correlation['other'] - $other_average);
                     }
                 }
-                $correlation_value = ($covariance != 0) ? ($covariance / sqrt($own_variance * $other_variance)) : 0;
+                $correlation_value = (0 != $covariance) ? ($covariance / sqrt($own_variance * $other_variance)) : 0;
 
                 // 保存
                 $this->da->setUserStatistics($user_id, $count, (int) ($correlation_value * $this->option->correlation_scale));
@@ -171,7 +171,7 @@ class Analyzer
     public function analyzeFile($file, &$count, &$total_score, $question_alias = [], $target_alias = [], $user_black_list = [])
     {
         $handle = fopen($file, 'r');
-        while (($array = fgetcsv($handle)) !== false) {
+        while (false !== ($array = fgetcsv($handle))) {
             if (count($array) < 5) {
                 break;
             }
@@ -196,8 +196,8 @@ class Analyzer
                 if ($question_id <= 0) {
                     continue;
                 }
-                ++$count[$target_id][$question_id][$user_id];
-                $total_score[$target_id][$question_id][$user_id] += $this->option->score[trim($answer)];
+                $count[$target_id][$question_id][$user_id] = ($count[$target_id][$question_id][$user_id] ?? 0) + 1;
+                $total_score[$target_id][$question_id][$user_id] = ($total_score[$target_id][$question_id][$user_id] ?? 0) + $this->option->score[trim($answer)];
             }
         }
         fclose($handle);

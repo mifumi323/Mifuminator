@@ -16,6 +16,7 @@ class Logic
     public function getBestTargetIDs($targets, $max, $min, $cutoff_difference)
     {
         $highscore = 0;
+        $i = 0;
         $result = [];
         foreach ($targets as $target) {
             if ($i >= $min) {
@@ -30,7 +31,7 @@ class Logic
                 }
             }
             $result[] = $target['target_id'];
-            if ($i == 0) {
+            if (0 == $i) {
                 $highscore = $target['score'];
             }
             ++$i;
@@ -180,7 +181,7 @@ class Logic
         $qcsv = '';
         foreach ($question_answer_history as $question_id => $answer) {
             $qscore = $score[$answer];
-            if ($qscore == 0) {
+            if (0 == $qscore) {
                 continue;
             }
             $whenthen .= "\nWHEN $question_id THEN $qscore";
@@ -189,7 +190,7 @@ class Logic
             }
             $qcsv .= $question_id;
         }
-        if (strlen($qcsv) == 0) {
+        if (0 == strlen($qcsv)) {
             return '0';
         }
 
@@ -210,7 +211,7 @@ class Logic
     public function guessTarget($question_answer_history, $max, $min, $except_target_ids, $cutoff_difference, $score)
     {
         $except_target_sql = '';
-        if (count($except_target_ids) > 0) {
+        if (count($except_target_ids ?? []) > 0) {
             $except_target_sql = 'AND target_id NOT IN ('.implode(',', $except_target_ids).')';
         }
         $target_additional_column = $this->getOption()->target_additional_column;
@@ -243,7 +244,7 @@ class Logic
                 }
             }
             $result[] = $row;
-            if ($i == 0) {
+            if (0 == $i) {
                 $highscore = $row['score'];
             }
             ++$i;
@@ -292,7 +293,7 @@ class Logic
             } else {
                 $question = ['score' => 0];
             }
-            if ($question['score'] != 0) {
+            if (0 != $question['score']) {
                 return $question;
             }
         }
@@ -303,18 +304,18 @@ class Logic
         }
 
         // 判断に有利な質問を選ぶ
-        if (count($temp_targets) == 2) {
+        if (2 == count($temp_targets)) {
             $question = $this->selectNextQuestionWithScoreFunction($question_answer_history, $temp_targets, 'getQuestionScoreSqlDivideTop2');
-            if ($question['score'] != 0) {
+            if (0 != $question['score']) {
                 return $question;
             }
         }
         $question = $this->selectNextQuestionWithScoreFunction($question_answer_history, $temp_targets, 'getQuestionScoreSqlDivideHalf');
-        if ($question['score'] != 0) {
+        if (0 != $question['score']) {
             return $question;
         }
         $question = $this->selectNextQuestionWithScoreFunction($question_answer_history, $temp_targets, 'getQuestionScoreSqlDivideTop2');
-        if ($question['score'] != 0) {
+        if (0 != $question['score']) {
             return $question;
         }
 
