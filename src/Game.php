@@ -167,11 +167,11 @@ class Game
         $learn_target_max = $this->getGameOption($game_state, 'learn_target_max');
         $learn_target_unknown = $this->getGameOption($game_state, 'learn_target_unknown');
         $score = $this->getGameOption($game_state, 'score');
-        $question_additional_column = $this->getOption()->question_additional_column;
+        $question_additional_column = $this->getOption()->question_additional_column ?? '';
         if (strlen($question_additional_column) > 0) {
             $question_additional_column = ','.$question_additional_column;
         }
-        $target_additional_column = $this->getOption()->target_additional_column;
+        $target_additional_column = $this->getOption()->target_additional_column ?? '';
         if (strlen($target_additional_column) > 0) {
             $target_additional_column = ','.$target_additional_column;
         }
@@ -326,7 +326,7 @@ class Game
 
     public function searchQuestion($game_state, $search)
     {
-        $question_additional_column = $this->getOption()->question_additional_column;
+        $question_additional_column = $this->getOption()->question_additional_column ?? '';
         if (strlen($question_additional_column) > 0) {
             $question_additional_column = ','.$question_additional_column;
         }
@@ -357,7 +357,7 @@ class Game
 
     public function searchTarget($game_state, $search)
     {
-        $target_additional_column = $this->getOption()->target_additional_column;
+        $target_additional_column = $this->getOption()->target_additional_column ?? '';
         if (strlen($target_additional_column) > 0) {
             $target_additional_column = ','.$target_additional_column;
         }
@@ -443,7 +443,7 @@ class Game
         }, $game_state['targets']))) {
             throw new GameInvalidTargetException();
         }
-        $target_additional_column = $this->getOption()->target_additional_column;
+        $target_additional_column = $this->getOption()->target_additional_column ?? '';
         if (strlen($target_additional_column) > 0) {
             $target_additional_column = ','.$target_additional_column;
         }

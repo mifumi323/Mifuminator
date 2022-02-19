@@ -214,7 +214,7 @@ class Logic
         if (count($except_target_ids ?? []) > 0) {
             $except_target_sql = 'AND target_id NOT IN ('.implode(',', $except_target_ids).')';
         }
-        $target_additional_column = $this->getOption()->target_additional_column;
+        $target_additional_column = $this->getOption()->target_additional_column ?? '';
         if (strlen($target_additional_column) > 0) {
             $target_additional_column = ','.$target_additional_column;
         }
@@ -330,7 +330,7 @@ class Logic
         if (count($question_answer_history) > 0) {
             $except_sql = 'AND question_id NOT IN ('.implode(',', array_keys($question_answer_history)).')';
         }
-        $question_additional_column = $this->getOption()->question_additional_column;
+        $question_additional_column = $this->getOption()->question_additional_column ?? '';
         if (strlen($question_additional_column) > 0) {
             $question_additional_column = ','.$question_additional_column;
         }
