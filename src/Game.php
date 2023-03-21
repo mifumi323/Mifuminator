@@ -298,6 +298,7 @@ class Game
 
     public function newQuestion($game_state, $question)
     {
+        // TODO: question重複登録しようとした時の対応(#5)
         $this->getDB()->begin();
         $this->getDA()->addQuestion($question, $game_state['user_id']);
         $ret = $this->getDB()->exec('SELECT MAX(question_id) FROM question;');
@@ -309,6 +310,7 @@ class Game
 
     public function newTarget($game_state, $target)
     {
+        // TODO: target重複登録しようとした時の対応(#4)
         $this->getDB()->begin();
         $this->getDA()->addTarget($target, $game_state['user_id']);
         $ret = $this->getDB()->query('SELECT * FROM target ORDER BY target_id DESC LIMIT 1;');
