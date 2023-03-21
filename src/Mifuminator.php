@@ -71,6 +71,9 @@ class Mifuminator
         return new Option();
     }
 
+    /**
+     * @return Analyzer
+     */
     public function getAnalyzer()
     {
         if (!isset($this->analyzer)) {
@@ -80,6 +83,9 @@ class Mifuminator
         return $this->analyzer;
     }
 
+    /**
+     * @return DataAccess
+     */
     public function getDA()
     {
         if (!isset($this->da)) {
@@ -89,6 +95,9 @@ class Mifuminator
         return $this->da;
     }
 
+    /**
+     * @return Database
+     */
     public function getDB()
     {
         if (!isset($this->db)) {
@@ -98,6 +107,9 @@ class Mifuminator
         return $this->db;
     }
 
+    /**
+     * @return Installer
+     */
     public function getInstaller()
     {
         if (!isset($this->installer)) {
@@ -107,6 +119,9 @@ class Mifuminator
         return $this->installer;
     }
 
+    /**
+     * @return Game
+     */
     public function getGame()
     {
         if (!isset($this->game)) {
@@ -116,6 +131,9 @@ class Mifuminator
         return $this->game;
     }
 
+    /**
+     * @return Logic
+     */
     public function getLogic()
     {
         if (!isset($this->logic)) {
@@ -125,6 +143,9 @@ class Mifuminator
         return $this->logic;
     }
 
+    /**
+     * @return Option
+     */
     public function getOption()
     {
         if (!isset($this->option)) {
