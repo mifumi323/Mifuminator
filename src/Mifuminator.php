@@ -1,6 +1,6 @@
 <?php
 
-namespace MifuminLib\Mifuminator;
+namespace Mifumi323\Mifuminator;
 
 class Mifuminator
 {
