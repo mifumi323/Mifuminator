@@ -93,6 +93,19 @@ class DataAccess
     }
 
     /**
+     * 指定した質問が既に存在するかを判定する。
+     * @param string $question 質問内容
+     * @return bool 存在する場合はtrue、存在しない場合はfalse
+     */
+    public function questionExists($question)
+    {
+        $sql = 'SELECT COUNT(*) c FROM question WHERE content = :content';
+        $params = [':content' => $question];
+        $result = $this->db->query($sql, $params);
+        return $result && $result[0]['c'] > 0;
+    }
+
+    /**
      * スコアを記録する。
      * @param int $question_id 質問ID
      * @param int $target_id ターゲットID
@@ -129,12 +142,25 @@ class DataAccess
     }
 
     /**
+     * 指定したターゲットが既に存在するかを判定する。
+     * @param string $target ターゲット内容
+     * @return bool 存在する場合はtrue、存在しない場合はfalse
+     */
+    public function targetExists($target)
+    {
+        $sql = 'SELECT COUNT(*) c FROM target WHERE content = :content';
+        $params = [':content' => $target];
+        $result = $this->db->query($sql, $params);
+        return $result && $result[0]['c'] > 0;
+    }
+
+    /**
      * ログファイルに回答データを書き込む。
      * 必要に応じてスコアもDBに記録する。
      * @param int $user_id ユーザーID
      * @param int $game_id ゲームID
      * @param int $target_id ターゲットID
-     * @param array $question_answer_list 質問ID=>回答の配列
+     * @param array $question_answer_list 質問ID=> 回答の配列
      * @param int|null $time タイムスタンプ（省略時は現在時刻）
      * @param bool $insertToDB スコアをDBに記録するか
      * @return void

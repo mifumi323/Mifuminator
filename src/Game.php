@@ -312,8 +312,11 @@ class Game
 
     public function newQuestion($game_state, $question)
     {
-        // TODO: question重複登録しようとした時の対応(#5)
         $this->getDB()->begin();
+        if ($this->getDA()->questionExists($question)) {
+            $this->getDB()->rollback();
+            throw new DuplicatedQuestionException('Question already exists: '.$question);
+        }
         $this->getDA()->addQuestion($question, $game_state['user_id']);
         $ret = $this->getDB()->exec('SELECT MAX(question_id) FROM question;');
         $question_id = $ret->fetchColumn();
@@ -324,8 +327,11 @@ class Game
 
     public function newTarget($game_state, $target)
     {
-        // TODO: target重複登録しようとした時の対応(#4)
         $this->getDB()->begin();
+        if ($this->getDA()->targetExists($target)) {
+            $this->getDB()->rollback();
+            throw new DuplicatedTargetException('Target already exists: '.$target);
+        }
         $this->getDA()->addTarget($target, $game_state['user_id']);
         $ret = $this->getDB()->query('SELECT * FROM target ORDER BY target_id DESC LIMIT 1;');
         $game_state['targets'] = $ret;
