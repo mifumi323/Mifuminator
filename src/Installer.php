@@ -2,15 +2,29 @@
 
 namespace Mifumi323\Mifuminator;
 
+/**
+ * データベースのテーブル作成・初期化を行うクラス。
+ */
 class Installer
 {
+    /**
+     * @var Database データベースオブジェクト
+     */
     private $db;
 
+    /**
+     * コンストラクタ
+     * @param Database $db データベースオブジェクト
+     */
     public function __construct($db)
     {
         $this->db = $db;
     }
 
+    /**
+     * 全テーブルの作成を実行する。
+     * @return void
+     */
     public function install()
     {
         $this->installTargetTable();
@@ -21,6 +35,10 @@ class Installer
         $this->installUserStatisticsTable();
     }
 
+    /**
+     * targetテーブルを作成する。
+     * @return void
+     */
     public function installTargetTable()
     {
         $this->db->exec('
@@ -37,6 +55,10 @@ class Installer
         ');
     }
 
+    /**
+     * questionテーブルを作成する。
+     * @return void
+     */
     public function installQuestionTable()
     {
         $this->db->exec('
@@ -53,6 +75,10 @@ class Installer
         ');
     }
 
+    /**
+     * scoreテーブルを作成する。
+     * @return void
+     */
     public function installScoreTable()
     {
         $this->db->exec('
@@ -72,6 +98,10 @@ class Installer
         ');
     }
 
+    /**
+     * game_stateテーブルを作成する。
+     * @return void
+     */
     public function installGameStateTable()
     {
         $this->db->exec('

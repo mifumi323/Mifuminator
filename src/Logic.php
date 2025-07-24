@@ -2,17 +2,40 @@
 
 namespace Mifumi323\Mifuminator;
 
+/**
+ * ゲームの推論・選択ロジックを提供するクラス。
+ * 候補選定やスコア計算などのロジックを実装する。
+ */
 class Logic
 {
+    /**
+     * @var Database データベースオブジェクト
+     */
     private $db;
+    /**
+     * @var Option オプション設定オブジェクト
+     */
     private $option;
 
+    /**
+     * コンストラクタ
+     * @param Database $db データベースオブジェクト
+     * @param Option $option オプション設定オブジェクト
+     */
     public function __construct($db, $option)
     {
         $this->db = $db;
         $this->option = $option;
     }
 
+    /**
+     * 候補リストからスコア等で最適なターゲットID群を返す。
+     * @param array $targets 候補ターゲット配列
+     * @param int $max 最大数
+     * @param int $min 最小数
+     * @param int $cutoff_difference スコア差の閾値
+     * @return array 最適なターゲットID配列
+     */
     public function getBestTargetIDs($targets, $max, $min, $cutoff_difference)
     {
         $highscore = 0;
@@ -40,11 +63,19 @@ class Logic
         return $result;
     }
 
+    /**
+     * データベースオブジェクトを取得する。
+     * @return Database データベースオブジェクト
+     */
     public function getDB()
     {
         return $this->db;
     }
 
+    /**
+     * オプション設定オブジェクトを取得する。
+     * @return Option オプション設定オブジェクト
+     */
     public function getOption()
     {
         return $this->option;

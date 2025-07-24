@@ -2,16 +2,43 @@
 
 namespace Mifumi323\Mifuminator;
 
+/**
+ * ゲーム本体の管理・制御を行うメインクラス。
+ * 各種コンポーネントの生成や状態管理を担当する。
+ */
 class Mifuminator
 {
+    /**
+     * @var string データベースファイルパス
+     */
     private $db_file_path;
-
+    /**
+     * @var Database|null データベースオブジェクト
+     */
     private $db = null;
+    /**
+     * @var DataAccess|null データアクセスオブジェクト
+     */
     private $da = null;
+    /**
+     * @var Analyzer|null 解析オブジェクト
+     */
     private $analyzer = null;
+    /**
+     * @var Option|null オプション設定オブジェクト
+     */
     private $option = null;
+    /**
+     * @var Installer|null インストーラーオブジェクト
+     */
     private $installer = null;
+    /**
+     * @var Logic|null ロジックオブジェクト
+     */
     private $logic = null;
+    /**
+     * @var Game|null ゲームオブジェクト
+     */
     private $game = null;
 
     const ANSWER_YES = 1;

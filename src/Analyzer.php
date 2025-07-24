@@ -2,12 +2,29 @@
 
 namespace Mifumi323\Mifuminator;
 
+/**
+ * データ解析を行うクラス。
+ * ゲームログファイルを解析し、スコアやユーザー統計情報を計算・記録する。
+ */
 class Analyzer
 {
+    /**
+     * @var DataAccess データアクセスオブジェクト
+     */
     private $da;
+    /**
+     * @var Database データベースオブジェクト
+     */
     private $db;
+    /**
+     * @var Option オプション設定オブジェクト
+     */
     private $option;
 
+    /**
+     * コンストラクタ
+     * @param DataAccess $da データアクセスオブジェクト
+     */
     public function __construct($da)
     {
         $this->da = $da;
@@ -15,6 +32,11 @@ class Analyzer
         $this->option = $da->getOption();
     }
 
+    /**
+     * ゲームログ全体または差分の解析を行う。
+     * @param bool $full 全解析の場合はtrue、差分のみの場合はfalse
+     * @return bool 解析が正常に完了した場合はtrue
+     */
     public function analyze($full = false)
     {
         $this->db->begin();
@@ -59,6 +81,16 @@ class Analyzer
         return true;
     }
 
+    /**
+     * ログファイルリストを解析し、スコアやユーザー相関を計算・記録する。
+     * @param array $file_list 解析対象のファイルリスト
+     * @param array $question_alias 質問IDのエイリアスマップ
+     * @param array $target_alias ターゲットIDのエイリアスマップ
+     * @param bool $use_auto_black_list 自動ブラックリストを使用するか
+     * @param bool $regist_user_correlation ユーザー相関を記録するか
+     * @param bool $regist_score スコアを記録するか
+     * @return void
+     */
     public function analyzeData($file_list, $question_alias, $target_alias, $use_auto_black_list, $regist_user_correlation, $regist_score)
     {
         // ブラックリスト
@@ -168,6 +200,16 @@ class Analyzer
         }
     }
 
+    /**
+     * 1つのログファイルを解析し、スコア集計用配列に加算する。
+     * @param string $file 解析対象ファイルパス
+     * @param array &$count 回答数集計用配列（参照渡し）
+     * @param array &$total_score スコア集計用配列（参照渡し）
+     * @param array $question_alias 質問IDのエイリアスマップ
+     * @param array $target_alias ターゲットIDのエイリアスマップ
+     * @param array $user_black_list ブラックリストユーザーID配列
+     * @return void
+     */
     public function analyzeFile($file, &$count, &$total_score, $question_alias = [], $target_alias = [], $user_black_list = [])
     {
         $handle = fopen($file, 'r');

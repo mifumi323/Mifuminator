@@ -2,11 +2,24 @@
 
 namespace Mifumi323\Mifuminator;
 
+/**
+ * SQLiteデータベースへの接続・操作を提供するクラス。
+ */
 class Database
 {
+    /**
+     * @var string データベースファイルパス
+     */
     private $db_file_path;
+    /**
+     * @var \PDO PDOインスタンス
+     */
     private $db;
 
+    /**
+     * コンストラクタ
+     * @param string $db_file_path データベースファイルパス
+     */
     public function __construct($db_file_path)
     {
         $this->db_file_path = $db_file_path;
@@ -15,19 +28,30 @@ class Database
         $this->db->sqliteCreateFunction('RANDOM', 'mt_rand', 0);
     }
 
-    // トランザクション開始
+    /**
+     * トランザクション開始
+     * @return bool
+     */
     public function begin()
     {
         return $this->db->beginTransaction();
     }
 
-    // コミット
+    /**
+     * コミット
+     * @return bool
+     */
     public function commit()
     {
         return $this->db->commit();
     }
 
-    // 実行
+    /**
+     * SQL実行
+     * @param string $sql SQL文
+     * @param array $params パラメータ
+     * @return \PDOStatement|false
+     */
     public function exec($sql, $params = [])
     {
         $statement = $this->prepare($sql);
@@ -38,13 +62,24 @@ class Database
         return $statement;
     }
 
-    // データベースオブジェクトを取得
+    /**
+     * データベースオブジェクトを取得
+     * @return \PDO
+     */
     public function getObject()
     {
         return $this->db;
     }
 
-    // 挿入
+    /**
+     * レコード挿入
+     * @param string $table テーブル名
+     * @param array $params 挿入データ
+     * @param array $sqlparams SQLパラメータ
+     * @param bool $tryReplace REPLACE句を使うか
+     * @param bool $throwOnConflict 衝突時に例外を投げるか
+     * @return bool
+     */
     public function insert($table, $params, $sqlparams = [], $tryReplace = false, $throwOnConflict = true)
     {
         $values = [];
@@ -63,13 +98,23 @@ class Database
         }
     }
 
-    // プリペアドステートメントの準備
+    /**
+     * プリペアドステートメントの準備
+     * @param string $statement SQL文
+     * @param array $driver_options ドライバオプション
+     * @return \PDOStatement|false
+     */
     public function prepare($statement, $driver_options = [])
     {
         return $this->db->prepare($statement, $driver_options);
     }
 
-    // クエリの実行
+    /**
+     * クエリの実行
+     * @param string $sql SQL文
+     * @param array $params パラメータ
+     * @return array|false
+     */
     public function query($sql, $params = [])
     {
         $statement = $this->exec($sql, $params);
@@ -80,7 +125,10 @@ class Database
         }
     }
 
-    // ロールバック
+    /**
+     * ロールバック
+     * @return bool
+     */
     public function rollback()
     {
         return $this->db->rollback();
