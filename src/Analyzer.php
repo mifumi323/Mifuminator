@@ -213,7 +213,7 @@ class Analyzer
     public function analyzeFile($file, &$count, &$total_score, $question_alias = [], $target_alias = [], $user_black_list = [])
     {
         $handle = fopen($file, 'r');
-        while (false !== ($array = fgetcsv($handle))) {
+        while (false !== ($array = fgetcsv($handle, escape: ''))) {
             if (count($array) < 5) {
                 break;
             }
